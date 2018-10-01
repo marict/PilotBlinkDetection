@@ -40,7 +40,7 @@ def eye_aspect_ratio(eye):
 args = {}
 basePath = "D:\\blink-detection\\"
 args["shape_predictor"] = basePath + "shape_predictor_68_face_landmarks.dat"
-args["video"] = basePath + "moving.mp4"
+args["video"] = basePath + "vids\\moving.mp4"
  
 # define two constants, one for the eye aspect ratio to indicate
 # blink and then a second constant for the number of consecutive
