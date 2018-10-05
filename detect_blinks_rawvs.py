@@ -47,8 +47,8 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 	# define two constants, one for the eye aspect ratio to indicate
 	# blink and then a second constant for the number of consecutive
 	# frames the eye must be below the threshold
-	EYE_AR_THRESH = 0.2
-	EYE_AR_CONSEC_FRAMES = 3
+	EYE_AR_THRESH = 0.16
+	EYE_AR_CONSEC_FRAMES = 2
 
 	# initialize the frame counters and the total number of blinks
 	COUNTER = 0
@@ -85,7 +85,7 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 		(grabbed,frame) = vs.read()
 		
 		if(grabbed):
-			print("Grabbed frame: " + str(FRAME_NUM))
+			print("Grabbed frame: " + str(FRAME_NUM) + "/" + str(FC))
 			FRAME_NUM += 1
 		else:
 			print("Did not grab frame")
@@ -109,8 +109,9 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 		# Reset blink flag
 		BLINKED = False
 	
-		if (len(rects) > 1):
-			raise ValueError("MORE THAN ONE FACE DETECTED")
+		# idk if this works
+		# if (len(rects) > 1):
+			# raise ValueError("MORE THAN ONE FACE DETECTED")
 	
 		# loop over the face detections
 		for rect in rects:
@@ -135,9 +136,9 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 			leftEyeHull = cv2.convexHull(leftEye)
 			rightEyeHull = cv2.convexHull(rightEye)
 
-			cv2.rectangle(frame,(rect.left(),rect.top()),(rect.right(),rect.bottom()),cv2.COLOR_BGR2HSV)
-			cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
-			cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
+			cv2.rectangle(frame,(rect.left(),rect.top()),(rect.right(),rect.bottom()),cv2.COLOR_BGR2HSV,10)
+			#cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 3)
+			#cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 3)
 			
 			# check to see if the eye aspect ratio is below the blink
 			# threshold, and if so, increment the blink frame counter
@@ -155,36 +156,38 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 
 				# reset the eye frame counter
 				COUNTER = 0
-	 
-		# draw the total number of blinks on the frame along with
-		# the computed eye aspect ratio for the frame
-		# Reset counter if we did not find any faces
-		if(len(rects) == 0):
-			COUNTER = 0
-			cv2.putText(frame, "EAR: N\\A", (300, 30),
-				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-			cv2.putText(frame, "NO FACE DETECTED", (300, 60),
-				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-		else:
-			cv2.putText(frame, "EAR: {:.2f}".format(ear), (300, 30),
-				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-			
-			# write to string
-			csv_out += str(int(timestamp)) + "," + str(int(BLINKED))
-			for coord in shape[lStart:lEnd]:
-				csv_out += "," + str(coord)
-			for coord in shape[rStart:rEnd]:
-				csv_out += "," + str(coord)
-			csv_out += "\n"
-			
-		cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-		cv2.putText(frame, "Frame: {}".format(FRAME_NUM), (10, 60),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-		
+				
 		if(SHOW_FRAME):
+			display_frame = cv2.resize(frame,(1280,720))
+			# draw the total number of blinks on the frame along with
+			# the computed eye aspect ratio for the frame
+			# Reset counter if we did not find any faces
+			if(len(rects) == 0):
+				COUNTER = 0
+				cv2.putText(display_frame, "EAR: N\\A", (300, 30),
+					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+				cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
+					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+			else:
+				cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
+					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+				
+				cv2.putText(display_frame, "Blinks: {}".format(TOTAL), (10, 30),
+					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+			cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
+				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+				
 			# show the frame
-			cv2.imshow("Frame", frame)
+			cv2.imshow("Frame", display_frame)
+		
+		# write to string
+		# csv_out += str(int(timestamp)) + "," + str(int(BLINKED))
+		# for coord in shape[lStart:lEnd]:
+			# csv_out += "," + str(coord)
+		# for coord in shape[rStart:rEnd]:
+			# csv_out += "," + str(coord)
+		# csv_out += "\n"
 		
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
