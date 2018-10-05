@@ -56,7 +56,9 @@ def classifyVid(vidPath,detector,predictor):
 	
 	# start the video stream thread
 	print("[INFO] starting video stream thread...")
-	vs = FileVideoStream(vidPath,horizontal_flip).start()
+	#vs = FileVideoStream(vidPath,horizontal_flip).start()
+	vs = FileVideoStream(vidPath).start()
+	
 	fileStream = True
 	# vs = VideoStream(src=0).start()
 	# vs = VideoStream(usePiCamera=True).start()
@@ -67,10 +69,11 @@ def classifyVid(vidPath,detector,predictor):
 	
 	FPS = vs.stream.get(cv2.CAP_PROP_FPS)
 	print("FPS = " + str(FPS))
-	print("timestamp = 0")
+	# print("timestamp = 0")
 	
 	# loop over frames from the video stream
 	while True:
+	
 		# if this is a file video stream, then we need to check if
 		# there any more frames left in the buffer to process
 		if fileStream and not vs.more():
@@ -78,8 +81,8 @@ def classifyVid(vidPath,detector,predictor):
 			
 		# output timestamp and frame
 		timestamp = 1000.0 * float(FRAME_NUM)/FPS
-		print("timestamp = " + str(timestamp), end=", ")
-		print("frame = " + str(FRAME_NUM))
+		#print("timestamp = " + str(timestamp), end=", ")
+		#print("frame = " + str(FRAME_NUM))
 
 		# grab the frame from the threaded video file stream, resize
 		# it, and convert it to grayscale
@@ -90,7 +93,7 @@ def classifyVid(vidPath,detector,predictor):
 		
 		# A smaller resolution means faster results. 
 		# A larger resolutions means better, slower results.	
-		frame = imutils.resize(frame, width=450)
+		frame = imutils.resize(frame)
 		
 		# Apply transformations (one of them being grayscale)
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -195,6 +198,8 @@ basePath = "D:\\blink-detection\\"
 shapePredPath = basePath + "shape_predictor_68_face_landmarks.dat"
 vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
+
+WRITE_TO_CSV = False
  
 # initialize dlib's face detector (HOG-based) and then create
 # the facial landmark predictor
@@ -204,16 +209,19 @@ predictor = dlib.shape_predictor(shapePredPath)
 
 # Classify each video
 for filename in os.listdir(vidPath):
+	print(filename)
 	if(filename.endswith(".mp4")):
 		vidName, ext = os.path.splitext(os.path.basename(filename))
 		
 		print("Classifying " + vidPath + filename)
 		csv_out = classifyVid(vidPath + filename,detector,predictor)
 		
-		print("Writing " + str(vidName) + ".csv")
-		#write to csv file
-		with open(csvPath + vidName + ".csv", "w") as text_file:
-			text_file.write(csv_out)
+		if(WRITE_TO_CSV):
+			print("Writing " + str(vidName) + ".csv")
+			#write to csv file
+			with open(csvPath + vidName + ".csv", "w") as text_file:
+				text_file.write(csv_out)
+				
 		print("-----")
 		
 print("Done!")
