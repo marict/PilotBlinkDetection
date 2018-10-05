@@ -58,41 +58,43 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 	print("[INFO] starting video stream thread...")
 	#vs = FileVideoStream(vidPath,horizontal_flip).start()
 	#vs = FileVideoStream(vidPath).start()
+	vs = cv2.VideoCapture(vidPath)
 	
 	fileStream = True
 	# vs = VideoStream(src=0).start()
 	# vs = VideoStream(usePiCamera=True).start()
 	# fileStream = False
-	time.sleep(10.0)
+	time.sleep(1.0)
 	FRAME_NUM = 0
 	print("Applying classifer to " + vidPath)
 	
-	FPS = vs.stream.get(cv2.CAP_PROP_FPS)
-	print("FPS = " + str(FPS))
-	print("Q size = " + str(vs.Q.qsize()))
+
+	print("Video properties:")
+	FPS = vs.get(cv2.CAP_PROP_FPS)
+	FC = vs.get(cv2.CAP_PROP_FRAME_COUNT)
+	F = vs.get(cv2.CAP_PROP_FORMAT)
+	print("\tFPS = " + str(FPS))
+	print("\tFrame count = " + str(FC))
+	print("\tFormat = " + str(F))
 	# print("timestamp = 0")
 	
 	# loop over frames from the video stream
-	while True:
+	while vs.isOpened():
 
+		# Try to grab frame
+		(grabbed,frame) = vs.read()
+		
+		if(grabbed):
+			print("Grabbed frame: " + str(FRAME_NUM))
+			FRAME_NUM += 1
+		else:
+			print("Did not grab frame")
+			continue
 	
-		# if this is a file video stream, then we need to check if
-		# there any more frames left in the buffer to process
-		if fileStream and not vs.more():
-			break
-			
 		# output timestamp and frame
 		timestamp = 1000.0 * float(FRAME_NUM)/FPS
 		#print("timestamp = " + str(timestamp), end=", ")
 		#print("frame = " + str(FRAME_NUM))
-
-		# grab the frame from the threaded video file stream, resize
-		# it, and convert it to grayscale
-		# channels)
-		
-		frame = vs.read()
-		
-		FRAME_NUM += 1
 		
 		# A smaller resolution means faster results. 
 		# A larger resolutions means better, slower results.	
@@ -183,19 +185,13 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 		if(SHOW_FRAME):
 			# show the frame
 			cv2.imshow("Frame", frame)
+		
+		if cv2.waitKey(1) & 0xFF == ord('q'):
+			break
 				
-		
-		# key = cv2.waitKey(1) & 0xFF
-		# # if the `q` key was pressed, break from the loop
-		# if key == ord("q"):
-			# break
-		
-		if(FRAME_NUM % 10 == 0):
-			print("\tOn frame " + str(FRAME_NUM))
 
 	# do a bit of cleanup
 	cv2.destroyAllWindows()
-	vs.stop()
 	
 	return [csv_out,TOTAL]
 	
@@ -221,7 +217,7 @@ for filename in os.listdir(vidPath):
 		vidName, ext = os.path.splitext(os.path.basename(filename))
 		
 		print("Classifying " + vidPath + filename)
-		csv_out, total = classifyVid(vidPath + filename,detector,predictor,SHOW_FRAME = False)
+		csv_out, total = classifyVid(vidPath + filename,detector,predictor,SHOW_FRAME = True)
 		print("total = " + str(total))
 		
 		if(WRITE_TO_CSV):
