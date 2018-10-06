@@ -47,7 +47,7 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 	# define two constants, one for the eye aspect ratio to indicate
 	# blink and then a second constant for the number of consecutive
 	# frames the eye must be below the threshold
-	EYE_AR_THRESH = 0.16
+	EYE_AR_THRESH = 0.18
 	EYE_AR_CONSEC_FRAMES = 2
 
 	# initialize the frame counters and the total number of blinks
@@ -78,8 +78,11 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 	print("\tFormat = " + str(F))
 	# print("timestamp = 0")
 	
+	NOT_GRABBED = 0
+	
 	# loop over frames from the video stream
-	while vs.isOpened():
+	# stop when we haven't grabbed 20 frames
+	while NOT_GRABBED < 20:
 
 		# Try to grab frame
 		(grabbed,frame) = vs.read()
@@ -87,8 +90,10 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 		if(grabbed):
 			print("Grabbed frame: " + str(FRAME_NUM) + "/" + str(FC))
 			FRAME_NUM += 1
+			NOT_GRABBED = 0
 		else:
 			print("Did not grab frame")
+			NOT_GRABBED += 1
 			continue
 	
 		# output timestamp and frame
@@ -137,8 +142,8 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 			rightEyeHull = cv2.convexHull(rightEye)
 
 			cv2.rectangle(frame,(rect.left(),rect.top()),(rect.right(),rect.bottom()),cv2.COLOR_BGR2HSV,10)
-			#cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 3)
-			#cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 3)
+			cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
+			cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
 			
 			# check to see if the eye aspect ratio is below the blink
 			# threshold, and if so, increment the blink frame counter
@@ -158,7 +163,7 @@ def classifyVid(vidPath,detector,predictor, SHOW_FRAME = True):
 				COUNTER = 0
 				
 		if(SHOW_FRAME):
-			display_frame = cv2.resize(frame,(1280,720))
+			display_frame = cv2.resize(frame,(480,320))
 			# draw the total number of blinks on the frame along with
 			# the computed eye aspect ratio for the frame
 			# Reset counter if we did not find any faces
@@ -220,7 +225,7 @@ for filename in os.listdir(vidPath):
 		vidName, ext = os.path.splitext(os.path.basename(filename))
 		
 		print("Classifying " + vidPath + filename)
-		csv_out, total = classifyVid(vidPath + filename,detector,predictor,SHOW_FRAME = True)
+		csv_out, total = classifyVid(vidPath + filename,detector,predictor,SHOW_FRAME = False)
 		print("total = " + str(total))
 		
 		if(WRITE_TO_CSV):
