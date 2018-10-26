@@ -36,7 +36,7 @@ def horizontal_flip(src):
 # detectType to say which detector the rectangle represents
 #
 # if detector does not find a face than detector2 will try
-def detectFaces(gray, detector,detector2, FACE_DOWNSAMPLE_RATIO):
+def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
 	detectType = 1
 	
 	# rescale frame for face detection
@@ -44,6 +44,10 @@ def detectFaces(gray, detector,detector2, FACE_DOWNSAMPLE_RATIO):
 	
 	# detect faces in the grayscale frame
 	rects = detector(gray_rescale, 0)
+	
+	# dets = detector3(gray_rescale,0)
+	# rects = dlib.rectangles()
+	# rects.extend([d.rect for d in dets])
 	
 	# note rect is a dlib rectangle
 	if(len(rects) == 0):
@@ -53,7 +57,8 @@ def detectFaces(gray, detector,detector2, FACE_DOWNSAMPLE_RATIO):
 			return (None,None)
 		face = faces[0]
 		(x,y,w,h) = face
-		rect = dlib.rectangle(left=(x+w).item(), top=(y+h).item(), right=x.item(), bottom=y.item())	
+		#rect = dlib.rectangle(left=(x+w).item(), top=(y+h).item(), right=x.item(), bottom=y.item())
+		rect = dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())		
 		detectType = 2
 	else:
 		# use first face found
@@ -160,7 +165,7 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 		# Detect face
 		#rects = detector(gray_rescale, 0)
 		
-		rect, detectType = detectFaces(gray, detector,detector2, FACE_DOWNSAMPLE_RATIO)
+		rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
 		
 		if(rect is not None):
 			# Resize obtained rectangle for full resolution image
@@ -243,7 +248,6 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
 				
-
 	# do a bit of cleanup
 	cv2.destroyAllWindows()
 	
@@ -283,6 +287,7 @@ def classifyPic(picPath):
 	
 basePath = "D:\\blink-detection\\"
 detector2Path = basePath + "haarcascade_frontalface_default.xml"
+detector3Path = basePath + "mmod_human_face_detector.dat"
 shapePredPath = basePath + "shape_predictor_68_face_landmarks.dat"
 vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
@@ -293,9 +298,15 @@ WRITE_TO_CSV = False
  
 # initialize dlib's face detector (HOG-based) and then create
 # the facial landmark predictor
-print("[INFO] loading facial landmark predictor...")
+print("[INFO] loading facial classifiers...")
+
+# dlibs HOG based classifier
 detector = dlib.get_frontal_face_detector()
-detector2 = predictor2 = cv2.CascadeClassifier(detector2Path)
+# openCVs HAAR cascade classifier
+detector2 = cv2.CascadeClassifier(detector2Path)
+# dlibs CNN based classifier
+
+detector3 = dlib.cnn_face_detection_model_v1(detector3Path)
 predictor = dlib.shape_predictor(shapePredPath)	
 
 # Classify test picPath
