@@ -36,17 +36,21 @@ def horizontal_flip(src):
 # detectType to say which detector the rectangle represents
 #
 # if detector does not find a face than detector2 will try
-def detectFaces(gray, detector,detector2):
+def detectFaces(gray, detector,detector2, FACE_DOWNSAMPLE_RATIO):
 	detectType = 1
 	
+	# rescale frame for face detection
+	gray_rescale = cv2.resize(gray, (0,0),fx=1.0/FACE_DOWNSAMPLE_RATIO,fy=1.0/FACE_DOWNSAMPLE_RATIO)
+	
 	# detect faces in the grayscale frame
-	rects = detector(gray, 0)
+	rects = detector(gray_rescale, 0)
+	
 	# note rect is a dlib rectangle
 	if(len(rects) == 0):
 		# if no face found, try second detector
-		faces = detector2.detectMultiScale(gray,1.3,5)
+		faces = detector2.detectMultiScale(gray_rescale,1.3,5)
 		if(len(faces) == 0):
-			return None
+			return (None,None)
 		face = faces[0]
 		(x,y,w,h) = face
 		rect = dlib.rectangle(left=(x+w).item(), top=(y+h).item(), right=x.item(), bottom=y.item())	
@@ -61,7 +65,7 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 
 	# Constants
 	# How much to downsample face for detection
-	FACE_DOWNSAMPLE_RATIO = 6
+	FACE_DOWNSAMPLE_RATIO = 4
 	# How many ungrabbed frames till we end the video
 	END_VIDEO_LIMIT = 20
 	# Aspect ratio to indiciate blink
@@ -130,11 +134,11 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 		(grabbed,frame) = vs.read()
 		
 		if(grabbed):
-			print("Grabbed frame: " + str(FRAME_NUM) + "/" + str(FC))
+			# print("Grabbed frame: " + str(FRAME_NUM) + "/" + str(FC))
 			FRAME_NUM += 1
 			NOT_GRABBED = 0
 		else:
-			print("Did not grab frame")
+			# print("Did not grab frame")
 			NOT_GRABBED += 1
 			continue
 	
@@ -151,15 +155,14 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		
 		# Rescale for face detection		
-		gray_rescale = cv2.resize(gray, (0,0),fx=1.0/FACE_DOWNSAMPLE_RATIO,fy=1.0/FACE_DOWNSAMPLE_RATIO)
+		#gray_rescale = cv2.resize(gray, (0,0),fx=1.0/FACE_DOWNSAMPLE_RATIO,fy=1.0/FACE_DOWNSAMPLE_RATIO)
 		#cv2.imshow("Frame", gray_rescale)
 		# Detect face
-		rects = detector(gray_rescale, 0)
+		#rects = detector(gray_rescale, 0)
 		
-		print("----")
+		rect, detectType = detectFaces(gray, detector,detector2, FACE_DOWNSAMPLE_RATIO)
 		
-		if(len(rects) > 0):
-			rect = rects[0]
+		if(rect is not None):
 			# Resize obtained rectangle for full resolution image
 			rect_resize = dlib.rectangle(
 				left=rect.left() * FACE_DOWNSAMPLE_RATIO, 
@@ -167,9 +170,6 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 				right=rect.right() * FACE_DOWNSAMPLE_RATIO, 
 				bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
 			)	
-			
-			print(rect_resize)
-			print(gray.shape)
 		
 			shape = predictor(gray,rect_resize)
 			shape = face_utils.shape_to_np(shape)
@@ -214,8 +214,7 @@ def classifyVid(filename, detector, detector2, predictor, SHOW_FRAME = True):
 			# draw the total number of blinks on the frame along with
 			# the computed eye aspect ratio for the frame
 			# Reset counter if we did not find any faces
-			if(len(rects) == 0):
-				COUNTER = 0
+			if(rect is None):
 				cv2.putText(display_frame, "EAR: N\\A", (300, 30),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 				cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
