@@ -11,5 +11,6 @@ Installation Instructions (Windows 10):
 3. Create new environment (default has too many conflicts)
 4. conda install dlib
 5. conda install opencv
-6. Pip install scipy, imutils
+7. conda install scipy
+6. Pip install imutils
 7. Should be good to go! Let me know if something doesn't work.
