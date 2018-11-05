@@ -67,11 +67,10 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
 
 def classifyVid(filename, SHOW_FRAME = True):
 
-
-
 	# Constants
 	# How much to downsample face for detection
 	FACE_DOWNSAMPLE_RATIO = 4
+
 
 	# Aspect ratio to indiciate blink
 	EYE_AR_THRESH = 0.25
@@ -256,7 +255,7 @@ def classifyWebcam(SHOW_FRAME = True):
 
 	# Constants
 	# How much to downsample face for detection
-	FACE_DOWNSAMPLE_RATIO = 4
+	FACE_DOWNSAMPLE_RATIO = 1
 
 	# Aspect ratio to indiciate blink
 	EYE_AR_THRESH = 0.25
@@ -277,7 +276,7 @@ def classifyWebcam(SHOW_FRAME = True):
 	TOTAL = 0
 	
 	# start the video stream thread
-	print("[INFO] starting video stream thread...")
+	print("[INFO] starting webcam stream thread...")
 	#vs = FileVideoStream(vidPath,horizontal_flip).start()
 	#vs = FileVideoStream(vidPath).start()
 	# vs = cv2.VideoCapture(vidPath + filename)
@@ -295,18 +294,14 @@ def classifyWebcam(SHOW_FRAME = True):
 	# loop over frames from the video stream
 	# stop when we haven't grabbed END_VIDEO_LIMIT frames
 	while True:
-	
+		
 		# Reset blink flag
 		BLINKED = False
 		
 		# Try to grab frame
-		r = vs.read()
-		if(r):
-			(grabbed,frame) = r
-		else:
-			grabbed = False
-			print("No frame grabbed!")
+		frame = vs.read()
 		
+		grabbed = frame is not None
 		if(grabbed):
 			# print("Grabbed frame: " + str(FRAME_NUM) + "/" + str(FC))
 			FRAME_NUM += 1
@@ -315,10 +310,7 @@ def classifyWebcam(SHOW_FRAME = True):
 			# print("Did not grab frame")
 			NOT_GRABBED += 1
 			continue
-	
-		# output timestamp and frame
-		timestamp = 1000.0 * float(FRAME_NUM)/FPS
-		
+			
 		# Apply transformations (one of them being grayscale)
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		
@@ -434,7 +426,7 @@ def classifyPic(picPath):
 	cv2.imshow("Frame", frame)
 # ---------------------------------------------------------------------------
 # Every variable declared here is a global
-basePath = "D:\\blink-detection\\"
+basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
 detector2Path = basePath + "haarcascade_frontalface_default.xml"
 detector3Path = basePath + "mmod_human_face_detector.dat"
 shapePredPath = basePath + "shape_predictor_68_face_landmarks.dat"
@@ -444,10 +436,8 @@ picPath = basePath + "pics\\"
 
 WRITE_TO_CSV = False
  
-# initialize dlib's face detector (HOG-based) and then create
-# the facial landmark predictor
-print("[INFO] loading facial classifiers...")
 
+print("[INFO] loading facial classifiers...")
 # dlibs HOG based classifier
 detector = dlib.get_frontal_face_detector()
 # openCVs HAAR cascade classifier
