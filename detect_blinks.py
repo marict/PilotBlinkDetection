@@ -3,6 +3,7 @@ from scipy.spatial import distance as dist
 from imutils.video import FileVideoStream
 from imutils.video import VideoStream
 from imutils import face_utils
+from operator import itemgetter
 import numpy as np
 import argparse
 import imutils
@@ -251,6 +252,38 @@ def classifyVid(filename, SHOW_FRAME = True):
 	
 	return [csv_out,TOTAL]
 	
+
+#ears = []
+# returns a new lower bound EAR
+# assume each frame contains value EAR
+def calibrate(buffer):
+	AVG_WINDOW = 5
+	ERR_WINDOW = buffer.size()
+	if(2*AVG_WINDOW >= ERR_WINDOW):
+		raise ValueError(reason="AVG_WINDOW to large or LAG too small")
+	
+	ear_buf = [x[1] for x in buffer.getAll()]
+	ear_buf_chopped = ear_buf[AVG_WINDOW:ERR_WINDOW-AVG_WINDOW]
+	# Get index of the smallest EAR within AVG_WINDOW:LAG-AVG_WINDOW
+	# we assume this is where the blink actually occured 
+	min_index = min(enumerate(ear_buf_chopped), key=itemgetter(1))[0]
+	
+	print("min = " + str(ear_buf[min_index]))
+	print(ear_buf_chopped)
+	
+	avg = 0
+	# Calculate average in AVG_WINDOW centered on min_index
+	for ear in ear_buf[min_index - AVG_WINDOW:min_index + AVG_WINDOW]:
+		avg += ear
+	avg = avg/(AVG_WINDOW*2)
+	#ears.append(avg)
+	
+	# use 90th percentile as lower bound ear
+	#return np.percentile(np.array(ears),PERCENTILE)
+	
+	return avg
+	
+# Live calibration
 def classifyWebcam(SHOW_FRAME = True):
 
 	# Constants
@@ -258,7 +291,7 @@ def classifyWebcam(SHOW_FRAME = True):
 	FACE_DOWNSAMPLE_RATIO = 1
 
 	# Aspect ratio to indiciate blink
-	EYE_AR_THRESH = 0.25
+	eye_ar_thresh = 0.0
 	# Number consecutive frames eye must be below threshold
 	EYE_AR_CONSEC_FRAMES = 5
 
@@ -277,19 +310,19 @@ def classifyWebcam(SHOW_FRAME = True):
 	
 	# start the video stream thread
 	print("[INFO] starting webcam stream thread...")
-	#vs = FileVideoStream(vidPath,horizontal_flip).start()
-	#vs = FileVideoStream(vidPath).start()
-	# vs = cv2.VideoCapture(vidPath + filename)
 	
 	fileStream = True
 	vs = VideoStream(src=0).start()
 	print("VS = " + str(vs))
 	time.sleep(1.0)
-	FRAME_NUM = 0
-	print("Applying classifer to Webcam")
 	
 	# "dropped" frames
 	NOT_GRABBED = 0
+	
+	# buffer for storing LAG frames of ears
+	LAG = 30
+	frame_buf = buffer(LAG)
+	l = 0
 	
 	# loop over frames from the video stream
 	# stop when we haven't grabbed END_VIDEO_LIMIT frames
@@ -298,13 +331,13 @@ def classifyWebcam(SHOW_FRAME = True):
 		# Reset blink flag
 		BLINKED = False
 		
-		# Try to grab frame
-		frame = vs.read()
+		# Reset ear value 
+		ear = None
 		
+		# Grab frame
+		frame = vs.read()
 		grabbed = frame is not None
 		if(grabbed):
-			# print("Grabbed frame: " + str(FRAME_NUM) + "/" + str(FC))
-			FRAME_NUM += 1
 			NOT_GRABBED = 0
 		else:
 			# print("Did not grab frame")
@@ -337,7 +370,13 @@ def classifyWebcam(SHOW_FRAME = True):
 
 			# average the eye aspect ratio together for both eyes
 			ear = (leftEAR + rightEAR) / 2.0
-
+			
+			# Add to buffer
+			frame_buf.add((frame,ear))
+			if(l < LAG):
+				l += 1
+				continue
+				
 			# compute the convex hull for the left and right eye, then
 			# visualize each of the eyes
 			leftEyeHull = cv2.convexHull(leftEye)
@@ -349,8 +388,9 @@ def classifyWebcam(SHOW_FRAME = True):
 			
 			# check to see if the eye aspect ratio is below the blink
 			# threshold, and if so, increment the blink frame counter
-			if ear < EYE_AR_THRESH:
+			if ear < eye_ar_thresh:
 				COUNTER += 1
+				
 			# otherwise, the eye aspect ratio is not below the blink
 			# threshold
 			else:
@@ -362,9 +402,19 @@ def classifyWebcam(SHOW_FRAME = True):
 
 				# reset the eye frame counter
 				COUNTER = 0
-				
+		
 		if(SHOW_FRAME):
-			display_frame = cv2.resize(frame,(1280,720))
+			# want to display the middle frame
+			if(frame_buf.size() > 0):
+				tuple = frame_buf.getMid()
+				display_frame = tuple[0]
+				display_ear = tuple[1]
+			else:
+				display_frame = frame
+				display_ear = ear
+		
+			display_frame = cv2.resize(display_frame,(1280,720))
+			
 			# draw the total number of blinks on the frame along with
 			# the computed eye aspect ratio for the frame
 			# Reset counter if we did not find any faces
@@ -374,25 +424,31 @@ def classifyWebcam(SHOW_FRAME = True):
 				cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 			else:
-				cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
+				cv2.putText(display_frame, "EAR: {:.2f}".format(display_ear), (300, 30),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 				
 				cv2.putText(display_frame, "Blinks: {}".format(TOTAL), (10, 30),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-			cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
+			cv2.putText(display_frame, "EYE_AR_THRESH: {:.4f}".format(eye_ar_thresh), (10, 60),
 				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 				
 			# show the frame
 			cv2.imshow("Frame", display_frame)
-		
-		if cv2.waitKey(1) & 0xFF == ord('q'):
+
+		# classify a blink and update heuristic
+		c = cv2.waitKey(1)
+		if c & 0xFF == ord('b'):
+			eye_ar_thresh = calibrate(frame_buf)
+			
+		if c & 0xFF == ord('q'):
 			break
-				
+		
+		
 	# do a bit of cleanup
 	cv2.destroyAllWindows()
 	
-	return [TOTAL]	
+	return [TOTAL, eye_ar_thresh]	
 	
 # Classifies a single picture
 def classifyPic(picPath):
@@ -424,6 +480,34 @@ def classifyPic(picPath):
 	cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
 	
 	cv2.imshow("Frame", frame)
+
+# buffer of CAP capacity
+class buffer: 
+	elems = []
+	CAP = None
+	
+	def __init__(self,capacity = 6):
+		self.CAP = capacity
+	
+	def add(self,elem):
+		if(len(self.elems) == self.CAP):
+			self.elems.pop(0)
+		self.elems.append(elem)
+		
+	# return the middle elem with an integer offset
+	def getMid(self,offset = 0):
+		m = int(len(self.elems)/2)
+		if(m + offset > len(self.elems) or m + offset < 0):
+			raise ValueError(reason="offset too large")
+		return self.elems[m + offset]
+	
+	# return refrence to entire elems list
+	def getAll(self):
+		return self.elems
+		
+	def size(self): 
+		return len(self.elems)
+	
 # ---------------------------------------------------------------------------
 # Every variable declared here is a global
 basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
@@ -435,6 +519,8 @@ csvPath = basePath + "logs\\"
 picPath = basePath + "pics\\"
 
 WRITE_TO_CSV = False
+# heuristic percentile for calibration 
+PERCENTILE = 95
  
 
 print("[INFO] loading facial classifiers...")
@@ -452,7 +538,8 @@ predictor = dlib.shape_predictor(shapePredPath)
 # classifyPic(picPath + "test.png")
 
 # Classify live video
-classifyWebcam(SHOW_FRAME = True)
+total, ratio = classifyWebcam(SHOW_FRAME = True)
+print("Final ratio = " + str(np.float(ratio)))
 
 # Classify each video
 # for filename in os.listdir(vidPath):
