@@ -13,4 +13,6 @@ Installation Instructions (Windows 10):
 5. conda install opencv
 7. conda install scipy
 6. Pip install imutils
-7. Should be good to go! Let me know if something doesn't work.
+8. conda install scikit-sklearn
+9. conda install pandas
+10. Should be good to go! Let me know if something doesn't work.
