@@ -206,7 +206,7 @@ shapePredPath = basePath + "shape_predictor_68_face_landmarks.dat"
 vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
 
-WRITE_TO_CSV = False
+WRITE_TO_CSV = True
  
 # initialize dlib's face detector (HOG-based) and then create
 # the facial landmark predictor
