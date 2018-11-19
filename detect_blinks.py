@@ -462,24 +462,24 @@ predictor = dlib.shape_predictor(shapePredPath)
 # classifyPic(picPath + "test.png")
 
 # Classify live video
-classifyWebcam(SHOW_FRAME = True)
+#classifyWebcam(SHOW_FRAME = True)
 
-# Classify each video
-# for filename in os.listdir(vidPath):
-	# print(filename)
-	# if(filename.endswith(".MP4") or filename.endswith(".mp4")):
-		# vidName, ext = os.path.splitext(os.path.basename(filename))
+#Classify each video
+for filename in os.listdir(vidPath):
+	print(filename)
+	if(filename.endswith(".MP4") or filename.endswith(".mp4")):
+		vidName, ext = os.path.splitext(os.path.basename(filename))
 		
-		# print("Classifying " + vidPath + filename)
-		# csv_out, total = classifyVid(filename,detector,detector2,predictor,SHOW_FRAME = True)
-		# print("total = " + str(total))
+		print("Classifying " + vidPath + filename)
+		csv_out, total = classifyVid(filename,SHOW_FRAME = True)
+		print("total = " + str(total))
 		
-		# if(WRITE_TO_CSV):
-			# print("Writing " + str(vidName) + ".csv")
-			# #write to csv file
-			# with open(csvPath + vidName + ".csv", "w") as text_file:
-				# text_file.write(csv_out)
+		if(WRITE_TO_CSV):
+			print("Writing " + str(vidName) + ".csv")
+			#write to csv file
+			with open(csvPath + vidName + ".csv", "w") as text_file:
+				text_file.write(csv_out)
 				
-		# print("-----")
+		print("-----")
 		
 print("Done!")
