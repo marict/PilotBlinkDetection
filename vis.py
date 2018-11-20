@@ -16,8 +16,8 @@ blink_labels = np.loadtxt(basePath + 'onsim_labels.csv',delimiter=',')
 # pd.Series(blink_lables[1000:12000]).plot()
 
 ears = blink[:,2]
-ears = normalize(ears[:,np.newaxis],axis=0).ravel()
-blink_labels = normalize(blink_labels[:,np.newaxis],axis=0).ravel()
+#ears = normalize(ears[:,np.newaxis],axis=0).ravel()
+#blink_labels = normalize(blink_labels[:,np.newaxis],axis=0).ravel()
 
 pd.Series(ears).plot()
 pd.Series(blink_labels).plot()
