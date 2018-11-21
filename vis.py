@@ -15,11 +15,13 @@ blink_labels = np.loadtxt(basePath + 'onsim_labels.csv',delimiter=',')
 # pd.Series(scalar.transform(np.atleast_2d(blink[1000:1200]).T[:,0]).plot())
 # pd.Series(blink_lables[1000:12000]).plot()
 
-ears = blink[:,2]
+ears = scipy.stats.zscore(blink[:,2])
+d_ears = np.gradient(ears)
 #ears = normalize(ears[:,np.newaxis],axis=0).ravel()
 #blink_labels = normalize(blink_labels[:,np.newaxis],axis=0).ravel()
 
 pd.Series(ears).plot()
+pd.Series(d_ears).plot()
 pd.Series(blink_labels).plot()
 plt.show()
 

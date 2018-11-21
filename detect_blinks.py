@@ -191,7 +191,7 @@ def label_video(video):
 	np.savetxt(csvPath + vidName + "_labels.csv", video_label, delimiter=",")
 
 # Generates a csv string of the ears of each frame (nothing if no face detected)
-def gen_ears(filename, SHOW_FRAME = True):
+def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 	print("Generating EARS for " + vidPath + filename)
 	
 	# How much to downsample face for detection
@@ -241,7 +241,8 @@ def gen_ears(filename, SHOW_FRAME = True):
 			NOT_GRABBED += 1
 			continue
 			
-		frame = horizontal_flip(frame)
+		if(FLIP):
+			frame = horizontal_flip(frame)
 	
 		# output timestamp and frame
 		timestamp = 1000.0 * float(FRAME_NUM)/FPS
@@ -507,7 +508,7 @@ for filename in os.listdir(vidPath):
 		vidName, ext = os.path.splitext(os.path.basename(filename))
 		
 		print("Classifying " + vidPath + filename)
-		csv_out = gen_ears(filename,SHOW_FRAME = True)
+		csv_out = gen_ears(filename,SHOW_FRAME = False)
 		
 		if(WRITE_TO_CSV):
 			print("Writing " + str(vidName) + ".csv")
