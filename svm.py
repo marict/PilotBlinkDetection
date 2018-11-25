@@ -7,6 +7,7 @@ from sklearn import svm
 from sklearn.model_selection import cross_validate
 from sklearn.externals import joblib
 from sklearn.pipeline import make_pipeline
+from numpy import nan
 
 # Other features to consider:
 	# Derivative of EAR
@@ -35,8 +36,11 @@ class SVM:
 		
 		if(len(tr) < 2*F_VECTOR_LENGTH + 1):
 			raise ValueError("training data too small")
-	
-		# normalize data with Z-SCORE
+		
+
+		# remove nan entries
+		tr = tr[~np.isnan(tr).any(axis=1)]
+		# normalize
 		tr[:,1] = scipy.stats.zscore(tr[:,1])
 		
 		# calculate and store the derivative to add to the feature vectors
@@ -63,6 +67,8 @@ class SVM:
 		
 		# clear memory
 		del blinkMap
+
+			
 	
 	# extracts the labels and features from sample array
 	def get_labels_features(self):
@@ -165,18 +171,50 @@ def test():
 		  
 	# test slicing
 	# testSlicing()
-	svm = SVM(t1)
-	svm.train()
+	# svm = SVM(t1)
+	#svm.train()
 	# svm.cv(2)
 	#svm.classify(t1[:,0:2])
 	
 	# current working directory	
-	cwd = os.path.dirname(os.path.realpath(__file__))
-	model_path = cwd + "\\saved_models\\"
-	svm.save(model_path)
-	svm2 = SVM(t1)
-	svm2.load("D:\\blink-detection\\saved_models\\2018_11_21.joblib")
-	svm2.cv(2)
+	# cwd = os.path.dirname(os.path.realpath(__file__))
+	# model_path = cwd + "\\saved_models\\"
+	# svm.save(model_path)
+	# svm2 = SVM(t1)
+	# svm2.load("D:\\blink-detection\\saved_models\\2018_11_21.joblib")
+	# svm2.cv(2)
+	
+	# # test training pre-processing
+	t2 = np.array([
+		  [50,nan,1],
+		  [51,1,1],
+		  [52,1,0],
+		  [53,1,1],
+		  [54,nan,0],
+		  # --- 
+		  [50,1,0],
+		  [51,1,1],
+		  [52,1,1],
+		  [53,1,1],
+		  [54,1,1],
+		  # --- 
+		  [55,1,0],
+		  [56,1,0],
+		  [57,nan,0],
+		  [58,nan,0],
+		  [59,nan,0],
+		  # ---
+		  [55,1,1],
+		  [56,1,1],
+		  [57,0,0],
+		  [58,0,0],
+		  [59,0,0],
+		  # --- 
+		  [60,0,0],
+		  [61,0,0],
+		  [62,0,0]])
+		  
+	svm2 = SVM(t2)
 	
 	
 test()
