@@ -152,7 +152,6 @@ def sync_arrays(a1,a2,SYNC_FRAME):
 	
 	return a1
 	
-
 	
 # imports csv into numpy array and returns numpy array
 def sync_csv(csv1,csv2,SYNC_FRAME):
