@@ -2,8 +2,11 @@ import os
 import cv2
 import time
 import numpy as np
+import pandas as pd
+import gc
 
 from numpy import nan
+from numpy import genfromtxt
 
 # flip frame
 def horizontal_flip(src):
@@ -143,19 +146,18 @@ def sync_arrays(a1,a2,SYNC_FRAME):
 	a1 = a1[index1:len(a1)]
 	a2 = a2[index2:len(a2)]
 	
+	# correct size 
+	if(len(a2) < len(a1)):
+		a2 = np.vstack((a2,a1[len(a2):len(a1)]))
+	
 	# see returns
 	x = np.isnan(a1)
 	x = np.where(x)
 	x = np.stack(x,axis=1)
 	x = x[:,0]
-	a1[x] = a2[x]
+	a1[x] = a2[x] 
 	
 	return a1
-	
-	
-# imports csv into numpy array and returns numpy array
-def sync_csv(csv1,csv2,SYNC_FRAME):
-	return sync_arrays(np.loadtxt(csv1),np.loadtxt(csv2))
 	
 basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
 
@@ -173,27 +175,44 @@ preTrainedPath = basePath + "pre_trained_models\\"
 
 
 # lets do some testing
-a1 = np.asarray([[1,1.0],
-[1,1.0],
-[1,1.0],
-[4,nan],
-[5,1.0],
-[6,1.0],
-[7,1.0],
-[8,nan]])
+# a1 = np.asarray([[1,1.0],
+# [1,1.0],
+# [1,1.0],
+# [4,nan],
+# [5,1.0],
+# [6,1.0],
+# [7,1.0],
+# [8,nan]])
 				 
-a2 = np.asarray([[1,1.0],
-[1,5.0],
-[4,5.0],
-[4,5.0],
-[5,5.0],
-[6,5.0],
-[7,5.0],
-[8,5.0]])
+# a2 = np.asarray([[1,1.0],
+# [1,5.0],
+# [4,5.0],
+# [4,5.0],
+# [5,5.0],
+# [6,5.0],
+# [7,5.0],
+# [8,5.0]])
 
-print(a1)
-out = sync_arrays(a1,a2,1)
+# print(a1)
+# out = sync_arrays(a1,a2,1)
+# print(out)
+
+# test on csvs 
+txt1 = csvPath + "left_test_ears.csv"
+left = pd.read_csv(txt1,sep=',',header=None)
+
+txt2 = csvPath + "right_test_ears.csv"
+right = pd.read_csv(txt2,sep=',',header=None)
+
+left = left.values
+right = right.values
+
+
+gc.collect()
+
+out = sync_arrays(left,right,1)
 print(out)
+
 		
 # sync videos
 # find_sync(files[0])
