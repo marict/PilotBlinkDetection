@@ -12,9 +12,23 @@ import imutils
 import time
 import dlib
 import cv2
-import os
+import sys,os
 import importlib
 
+
+
+# Every variable declared here is a global
+# basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
+basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
+
+vidPath = basePath + "vids\\"
+csvPath = basePath + "logs\\"
+picPath = basePath + "pics\\"
+preTrainedPath = basePath + "pre_trained_models\\"
+
+detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
+detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
+shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 
 
 def eye_aspect_ratio(eye):
@@ -50,8 +64,9 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
 	
 	# detect faces in the grayscale frame
 	rects = detector(gray_rescale, 0)
-	
+
 	# dets = detector3(gray_rescale,0)
+	
 	# rects = dlib.rectangles()
 	# rects.extend([d.rect for d in dets])
 	
@@ -61,12 +76,18 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
 		faces = detector2.detectMultiScale(gray_rescale,1.3,5)
 		if(len(faces) == 0):
 			return (None,None)
+	
+		faces = sorted(faces,reverse = True,key=lambda x: x[2] * x[3])
+		# use largest face found
 		face = faces[0]
 		(x,y,w,h) = face
 		rect = dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
 		detectType = 2
 	else:
+	
+		# use largest face found
 		# use first face found
+		rects = sorted(rects,reverse=True,key=lambda x: x.area())
 		rect = rects[0]
 		
 	return rect, detectType
@@ -336,18 +357,6 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 
 	
 # ---------------------------------------------------------------------------
-# Every variable declared here is a global
-# basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
-basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
-
-vidPath = basePath + "vids\\"
-csvPath = basePath + "logs\\"
-picPath = basePath + "pics\\"
-preTrainedPath = basePath + "pre_trained_models\\"
-
-detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
-detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
-shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 
 WRITE_TO_CSV = True
 
@@ -370,14 +379,14 @@ for filename in os.listdir(vidPath):
 		files.append(filename)
 
 # gen ears
-# file = files[0]
-# out = gen_ears(file)
-# out = np.asarray(out)
-# print(out.shape)
-# vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+file = files[0]
+out = gen_ears(file)
+out = np.asarray(out)
+print(out.shape)
+vidName, ext = os.path.splitext(os.path.basename(file))
+np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 		
-# gen ears
+# # gen ears
 # for file in files:
 	# vidName, ext = os.path.splitext(os.path.basename(file))
 	# out = gen_ears(file,SHOW_FRAME = True)
@@ -388,12 +397,12 @@ for filename in os.listdir(vidPath):
 	# print("-----")
 
 
-#Label video
-file = files[0]
-out = label_video(file)
-print(out.shape)
-vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "labels.csv", out, delimiter=",")
+# #Label video
+# file = files[0]
+# out = label_video(file)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "labels.csv", out, delimiter=",")
 	
 # Label video
 # # for file in files:

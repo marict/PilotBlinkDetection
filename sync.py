@@ -3,6 +3,8 @@ import cv2
 import time
 import numpy as np
 
+from numpy import nan
+
 # flip frame
 def horizontal_flip(src):
 	return cv2.flip(src,-1)
@@ -127,9 +129,34 @@ def find_sync(video,bindings=0):
 	vs.release()
 	
 	
-# uses a1's rows, if a1 did not find a face (i.e empty) uses a2 row
-def sync(csv1,csv2):
+# arguments: two numpy arrays
+# returns a3 such that if a1[row] has nan then a1[row] = a2[row] if a2[row] is not nan
+def sync_arrays(a1,a2,SYNC_FRAME):
 	
+	t1 = a1[:,0]
+	t2 = a2[:,0]
+	assert SYNC_FRAME in t1 or SYNC_FRAME in t2
+
+	# remove everything before sync frame
+	index1 = list(t1).index(SYNC_FRAME)
+	index2 = list(t2).index(SYNC_FRAME)
+	a1 = a1[index1:len(a1)]
+	a2 = a2[index2:len(a2)]
+	
+	# see returns
+	x = np.isnan(a1)
+	x = np.where(x)
+	x = np.stack(x,axis=1)
+	x = x[:,0]
+	a1[x] = a2[x]
+	
+	return a1
+	
+
+	
+# imports csv into numpy array and returns numpy array
+def sync_csv(csv1,csv2,SYNC_FRAME):
+	return sync_arrays(np.loadtxt(csv1),np.loadtxt(csv2))
 	
 basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
 
@@ -138,13 +165,36 @@ csvPath = basePath + "logs\\"
 picPath = basePath + "pics\\"
 preTrainedPath = basePath + "pre_trained_models\\"
 
-# get files
-files = []
-for filename in os.listdir(vidPath):
-	print("loaded: " + filename)
-	if(filename.endswith(".MP4") or filename.endswith(".mp4") or filename.endswith(".avi")):
-		files.append(filename)
+# # get files
+# files = []
+# for filename in os.listdir(vidPath):
+	# print("loaded: " + filename)
+	# if(filename.endswith(".MP4") or filename.endswith(".mp4") or filename.endswith(".avi")):
+		# files.append(filename)
 
-print(files)		
+
+# lets do some testing
+a1 = np.asarray([[1,1.0],
+[1,1.0],
+[1,1.0],
+[4,nan],
+[5,1.0],
+[6,1.0],
+[7,1.0],
+[8,nan]])
+				 
+a2 = np.asarray([[1,1.0],
+[1,5.0],
+[4,5.0],
+[4,5.0],
+[5,5.0],
+[6,5.0],
+[7,5.0],
+[8,5.0]])
+
+print(a1)
+out = sync_arrays(a1,a2,1)
+print(out)
+		
 # sync videos
 # find_sync(files[0])
