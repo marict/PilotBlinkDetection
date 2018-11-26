@@ -6,13 +6,15 @@ https://www.pyimagesearch.com/2017/04/24/eye-blink-detection-opencv-python-dlib/
 
 Installation Instructions (Windows 10):
 1. Download Anaconda
+    Config that worked for me: 
+    Python 3.7 version
+    Install for all users
+    Choose installation directory as */Anaconda3
+    Update path manually
 2. Connect to conda-forge channel
     conda config --add channels conda-forge 
-3. Create new environment (default has too many conflicts)
-4. conda install dlib
-5. conda install opencv
-7. conda install scipy
-6. Pip install imutils
-8. conda install scikit-sklearn
-9. conda install pandas
-10. Should be good to go! Let me know if something doesn't work.
+3. Create new environment (default has too many conflicts) and activate it
+    conda create --name myenv
+    activate myenv
+4. conda install dlib opencv scipy imutils scikit-learn pandas
+5. Pip install imutils
