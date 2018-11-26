@@ -159,6 +159,8 @@ def sync_arrays(a1,a2,SYNC_FRAME):
 	
 	return a1
 	
+def 
+	
 basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
 
 vidPath = basePath + "vids\\"
