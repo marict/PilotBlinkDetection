@@ -1,7 +1,5 @@
 # import the necessary packages
 from scipy.spatial import distance as dist
-from imutils.video import FileVideoStream
-from imutils.video import VideoStream
 from imutils import face_utils
 from operator import itemgetter
 from numpy import nan
@@ -46,10 +44,6 @@ def eye_aspect_ratio(eye):
 
 	# return the eye aspect ratio
 	return ear
-	
-# initial first transformation 
-def horizontal_flip(src):
-	return cv2.flip(src,-1)
 	
 # returns: 
 # rect = dlib.rectangle or None if no faces found
@@ -230,7 +224,6 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 	FACE_DOWNSAMPLE_RATIO = 4
 
 	# output matrix
-	#out = [["Timestamp,EAR"]]
 	out = []
 	
 	# grab the indexes of the facial landmarks for the left and
@@ -241,7 +234,6 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 	# start the video stream thread
 	vs = cv2.VideoCapture(vidPath + filename)
 	
-	fileStream = True
 	time.sleep(1.0)
 	FRAME_NUM = 0
 	print("Applying classifer to " + vidPath + filename)
