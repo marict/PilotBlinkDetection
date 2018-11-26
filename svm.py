@@ -3,6 +3,7 @@ import scipy.stats
 import pprint
 import os
 import datetime
+import pandas as pd
 from sklearn import svm
 from sklearn.model_selection import cross_validate
 from sklearn.externals import joblib
@@ -21,6 +22,16 @@ from numpy import nan
 TIMESTAMP = 0
 EAR = 1
 LABELED_BLINK = 2
+
+basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
+vidPath = basePath + "vids\\"
+csvPath = basePath + "logs\\"
+picPath = basePath + "pics\\"
+preTrainedPath = basePath + "pre_trained_models\\"
+
+detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
+detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
+shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 
 
 class SVM:
@@ -89,8 +100,6 @@ class SVM:
 		
 	# cross validate
 	def cv(self,fold=10):
-		if(self.internal_model is None):
-			raise ValueError("Need to train model first")
 		
 		labels,features = self.get_labels_features()		
 		
@@ -140,34 +149,34 @@ class SVM:
 		
 def test():
 	# test training pre-processing
-	t1 = np.array([
-		  [50,1,0],
-		  [51,1,1],
-		  [52,1,0],
-		  [53,1,1],
-		  [54,1,0],
-		  # --- 
-		  [50,1,0],
-		  [51,1,1],
-		  [52,1,0],
-		  [53,1,1],
-		  [54,1,0],
-		  # --- 
-		  [55,1,0],
-		  [56,1,0],
-		  [57,0,0],
-		  [58,0,0],
-		  [59,0,0],
-		  # ---
-		  [55,1,0],
-		  [56,1,0],
-		  [57,0,0],
-		  [58,0,0],
-		  [59,0,0],
-		  # --- 
-		  [60,0,0],
-		  [61,0,0],
-		  [62,0,0]])
+	# t1 = np.array([
+		  # [50,1,0],
+		  # [51,1,1],
+		  # [52,1,0],
+		  # [53,1,1],
+		  # [54,1,0],
+		  # # --- 
+		  # [50,1,0],
+		  # [51,1,1],
+		  # [52,1,0],
+		  # [53,1,1],
+		  # [54,1,0],
+		  # # --- 
+		  # [55,1,0],
+		  # [56,1,0],
+		  # [57,0,0],
+		  # [58,0,0],
+		  # [59,0,0],
+		  # # ---
+		  # [55,1,0],
+		  # [56,1,0],
+		  # [57,0,0],
+		  # [58,0,0],
+		  # [59,0,0],
+		  # # --- 
+		  # [60,0,0],
+		  # [61,0,0],
+		  # [62,0,0]])
 		  
 	# test slicing
 	# testSlicing()
@@ -185,36 +194,48 @@ def test():
 	# svm2.cv(2)
 	
 	# # test training pre-processing
-	t2 = np.array([
-		  [50,nan,1],
-		  [51,1,1],
-		  [52,1,0],
-		  [53,1,1],
-		  [54,nan,0],
-		  # --- 
-		  [50,1,0],
-		  [51,1,1],
-		  [52,1,1],
-		  [53,1,1],
-		  [54,1,1],
-		  # --- 
-		  [55,1,0],
-		  [56,1,0],
-		  [57,nan,0],
-		  [58,nan,0],
-		  [59,nan,0],
-		  # ---
-		  [55,1,1],
-		  [56,1,1],
-		  [57,0,0],
-		  [58,0,0],
-		  [59,0,0],
-		  # --- 
-		  [60,0,0],
-		  [61,0,0],
-		  [62,0,0]])
+	# t2 = np.array([
+		  # [50,nan,1],
+		  # [51,1,1],
+		  # [52,1,0],
+		  # [53,1,1],
+		  # [54,nan,0],
+		  # # --- 
+		  # [50,1,0],
+		  # [51,1,1],
+		  # [52,1,1],
+		  # [53,1,1],
+		  # [54,1,1],
+		  # # --- 
+		  # [55,1,0],
+		  # [56,1,0],
+		  # [57,nan,0],
+		  # [58,nan,0],
+		  # [59,nan,0],
+		  # # ---
+		  # [55,1,1],
+		  # [56,1,1],
+		  # [57,0,0],
+		  # [58,0,0],
+		  # [59,0,0],
+		  # # --- 
+		  # [60,0,0],
+		  # [61,0,0],
+		  # [62,0,0]])
 		  
-	svm2 = SVM(t2)
+	# svm2 = SVM(t2)
 	
+	# try training svm on some actual data
+	# pull out data and combine
+	
+	txt1 = csvPath + "face_ears.csv"
+	ears = pd.read_csv(txt1,sep=',',header=None).values
+
+	txt2 = csvPath + "face_labels.csv"
+	labels = pd.read_csv(txt2,sep=',',header=None).values
+	
+	t3 = np.hstack((ears,labels))
+	svm3 = SVM(t3)
+	svm3.cv(2)
 	
 test()
