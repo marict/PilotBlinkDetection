@@ -151,10 +151,6 @@ def show_landmarks(filename, SHOW_FRAME = True, FLIP = False):
 			shape = predictor(gray,rect_resize)
 			shape = face_utils.shape_to_np(shape)
 			
-			# draw landmarks on face
-			distance_nose_cheek(shape)
-			for (x, y) in [shape[3]]+[shape[33]]:
-				cv2.circle(frame, (x, y), 10, (0, 0, 255), -1)
 				
 		if(SHOW_FRAME):
 			display_frame = cv2.resize(frame,(720,480))
@@ -162,7 +158,10 @@ def show_landmarks(filename, SHOW_FRAME = True, FLIP = False):
 				cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 			else:
-				print("nothing")
+				# draw landmarks on face
+				distance_nose_cheek(shape)
+				for (x, y) in [shape[3]]+[shape[33]]:
+					cv2.circle(frame, (x, y), 10, (0, 0, 255), -1)
 				
 			cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
 				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -247,7 +246,7 @@ def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 			shape = face_utils.shape_to_np(shape)
 			
 			# draw landmarks on face
-			distance_nose_cheek(shape)
+			d = distance_nose_cheek(shape)
 			for (x, y) in [shape[3]]+[shape[33]]:
 				cv2.circle(frame, (x, y), 10, (0, 0, 255), -1)
 				
@@ -256,8 +255,6 @@ def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 			if(rect is None):
 				cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-			else:
-				print("nothing")
 				
 			cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
 				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -267,7 +264,7 @@ def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 			
 		# output different csv things if face was detected
 		if(rect is not None):
-			out.append([int(timestamp),nan])
+			out.append([int(timestamp),d])
 		else:
 			out.append([int(timestamp),nan])
 		
