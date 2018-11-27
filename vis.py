@@ -205,28 +205,17 @@ def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 	time.sleep(1.0)
 	FRAME_NUM = 0
 	
-	print("Video properties:")
-	FPS = vs.get(cv2.CAP_PROP_FPS)
-	FC = vs.get(cv2.CAP_PROP_FRAME_COUNT)
-	F = vs.get(cv2.CAP_PROP_FORMAT)
-	W = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
-	H = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
-	print("\tFPS = " + str(FPS))
-	print("\tFrame count = " + str(FC))
-	print("\tFormat = " + str(F))
-	print("\t(width,height) = (" + str(W) + "," + str(H) + ")")
-	
 	# "dropped" frames
 	NOT_GRABBED = 0
 	
 	# loop over frames from the video stream
 	# stop when we haven't grabbed END_VIDEO_LIMIT frames
-	while FRAME_NUM < FC:
+	while True:
 	
 		# Try to grab frame
-		(grabbed,frame) = vs.read()
+		frame = vs.read()
 		
-		if(grabbed):
+		if(frame is not None):
 			FRAME_NUM += 1
 			NOT_GRABBED = 0
 		else:
