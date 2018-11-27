@@ -283,6 +283,16 @@ def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 # ------------------------------------------------------------------------------------------------
 	
 # Data visualization file
+print("[INFO] loading facial classifiers...")
+# dlibs HOG based classifier
+detector = dlib.get_frontal_face_detector()
+# openCVs HAAR cascade classifier
+detector2 = cv2.CascadeClassifier(detector2Path)
+# dlibs CNN based classifier
+# currently too slow even with rescaling
+detector3 = dlib.cnn_face_detection_model_v1(detector3Path)
+# dlibs facial landmark detector (68 points)
+predictor = dlib.shape_predictor(shapePredPath)	
 
 # basePath = "D:\\blink-detection\\data\\"
 # blink = np.loadtxt(basePath + "onsim.csv",delimiter=',', skiprows=1)
@@ -303,18 +313,10 @@ def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 # # pd.Series(blink_labels).plot()
 # # plt.show()
 
-print("[INFO] loading facial classifiers...")
-# dlibs HOG based classifier
-detector = dlib.get_frontal_face_detector()
-# openCVs HAAR cascade classifier
-detector2 = cv2.CascadeClassifier(detector2Path)
-# dlibs CNN based classifier
-# currently too slow even with rescaling
-detector3 = dlib.cnn_face_detection_model_v1(detector3Path)
-# dlibs facial landmark detector (68 points)
-predictor = dlib.shape_predictor(shapePredPath)	
-
 # fname = "D:\\blink-detection\\vids\\rv3.MP4"
 # show_landmarks(fname)
 
-show_landmarks_webcam()
+out = show_landmarks_webcam()
+print(out)
+#np.savetxt(csvPath + "out_landmarks.csv", out, delimiter=",")
+
