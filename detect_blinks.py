@@ -106,10 +106,10 @@ def label_video(video,FLIP = False):
 	# FILL BUFFER
 	while True:
 		flag, frame = vs.read()
-		if(FLIP):
-			frame = horizontal_flip(frame)
 		if flag:
-			frame = cv2.resize(frame,(720,480))
+			frame = cv2.resize(frame,(1280,720))
+			if(FLIP):
+				frame = horizontal_flip(frame)
 			video_frame.append(frame)
 			cv2.putText(frame, "Frame: {}".format(current_frame), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 			cv2.imshow("Frame", frame)
@@ -146,10 +146,10 @@ def label_video(video,FLIP = False):
 				
 			current_frame += 1
 		else:
-			vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+			# vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
 			print("frame is not ready")
 			# It is better to wait for a while for the next frame to be ready
-			time.sleep(1.0)
+			continue
 		
 		if current_frame >= 8*int(FPS):
 			# If the number of captured frames is equal to the total number of frames,
@@ -158,10 +158,10 @@ def label_video(video,FLIP = False):
 
 	while True:
 		flag, frame = vs.read()
-		if(FLIP):
-			frame = horizontal_flip(frame)
 		if flag:
-			frame = cv2.resize(frame,(720,480))
+			frame = cv2.resize(frame,(1280,720))
+			if(FLIP):
+				frame = horizontal_flip(frame)
 			video_frame.append(frame)
 			video_frame.pop(0)
 			cv2.putText(frame, "Frame: {}".format(current_frame), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -201,10 +201,10 @@ def label_video(video,FLIP = False):
 			
 			current_frame += 1
 		else:
-			vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame-1)
+			# vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame-1)
 			print("frame is not ready")
 			# It is better to wait for a while for the next frame to be ready
-			time.sleep(1.0)
+			continue
 		
 		if current_frame == num_frames:
 			# If the number of captured frames is equal to the total number of frames,
@@ -383,18 +383,18 @@ for filename in os.listdir(vidPath):
 	# vidName, ext = os.path.splitext(os.path.basename(file))
 	# out = gen_ears(file,SHOW_FRAME = True)
 	# if(WRITE_TO_CSV):
-		# print("Writing " + str(vidName) + ".csv")
+		# print("Writing " + str(vidName) + "_ears.csv")
 		# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 			
 	# print("-----")
 
 
-#Label video
-# file = files[0]
-# out = label_video(file)
-# print(out.shape)
-# vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
+# Label video
+file = files[0]
+out = label_video(file)
+print(out.shape)
+vidName, ext = os.path.splitext(os.path.basename(file))
+np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
 	
 # Label video
 # # for file in files:
