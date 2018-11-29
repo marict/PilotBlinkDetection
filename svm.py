@@ -1,4 +1,5 @@
-import numpy as np 
+import numpy as np
+import math 
 import scipy.stats
 import pprint
 import os
@@ -38,7 +39,7 @@ class SVM:
 	tr_vectors = None
 	ts_vectors = None
 	internal_model = None
-	F_VECTOR_LENGTH = 2
+	F_VECTOR_LENGTH = 3
 	pp = pprint.PrettyPrinter(indent=4)
 	
 	def __init__(self,tr):
@@ -55,7 +56,12 @@ class SVM:
 		tr[:,1] = scipy.stats.zscore(tr[:,1])
 		
 		# calculate and store the derivative to add to the feature vectors
-		# dr = np.gradient(tr[:,1])
+		dr = scipy.stats.zscore(np.gradient(tr[:,1]))
+
+		print(tr.shape)
+		tr = np.hstack((tr,dr.reshape((-1,1))))
+		
+		print(tr.shape)
 	
 		# SET UP TRAINING
 		# Maps indicies to blink or not
@@ -64,11 +70,16 @@ class SVM:
 		# Mapping frames to their classification
 		self.tr_vectors = []
 		
+		numblinks = 0
+		
 		# extract blinks 
 		for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
 			if(tr[i][LABELED_BLINK] == 1):
 				blinkMap[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1
-				self.tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],1))
+				# BALANCING DATA
+				for z in range(100):
+					numblinks += 1
+					self.tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],1))
 				
 		# extract non blinks
 		for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
@@ -78,7 +89,15 @@ class SVM:
 		
 		# clear memory
 		del blinkMap
-
+		
+		#print(numblinks)
+		# print(len(self.tr_vectors))
+		
+		#print(self.tr_vectors[0][0])
+		
+		
+		
+	
 			
 	
 	# extracts the labels and features from sample array
@@ -87,7 +106,9 @@ class SVM:
 		
 		features = []
 		for feature in [x[0] for x in self.tr_vectors]:
-			features.append([x[1] for x in feature])
+			features.append([x[1] for x in feature] + [x[3] for x in feature])
+			
+		self.pp.pprint(features[0])
 		
 		return labels,features
 		
@@ -100,6 +121,7 @@ class SVM:
 		
 	# cross validate
 	def cv(self,fold=10):
+		print("cross validating")
 		
 		labels,features = self.get_labels_features()		
 		
@@ -110,7 +132,7 @@ class SVM:
            'prec_macro': 'precision_macro',
            'rec_macro': 'recall_macro'}
 		  
-		score_lr = cross_validate(model_svm_linear, features, labels, scoring=scoring, cv=fold, return_train_score=True)
+		score_lr = cross_validate(model_svm_linear, features, labels, scoring=scoring, cv=fold, return_train_score=True,verbose =True)
 		self.pp.pprint(score_lr)
 	   
 	# output classification on test data
@@ -228,14 +250,16 @@ def test():
 	# try training svm on some actual data
 	# pull out data and combine
 	
-	txt1 = csvPath + "face_ears.csv"
+	print("loading in ears")
+	txt1 = csvPath + "planesweater1_ears.csv"
 	ears = pd.read_csv(txt1,sep=',',header=None).values
 
-	txt2 = csvPath + "face_labels.csv"
+	print("loading in labels")
+	txt2 = csvPath + "planesweater1_labels.csv"
 	labels = pd.read_csv(txt2,sep=',',header=None).values
 	
 	t3 = np.hstack((ears,labels))
 	svm3 = SVM(t3)
-	svm3.cv(2)
+	svm3.cv(10)
 	
 test()
