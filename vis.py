@@ -1,5 +1,5 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import scipy
 import argparse
 import imutils
@@ -7,6 +7,7 @@ import time
 import dlib
 import cv2
 import sys,os
+import numpy as np
 from scipy.spatial import distance as dist
 from imutils.video import FileVideoStream
 from imutils.video import VideoStream
@@ -14,6 +15,7 @@ from imutils import face_utils
 from operator import itemgetter
 from numpy import nan
 from sklearn.preprocessing import *
+
 
 # Every variable declared here is a global
 # basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
@@ -186,6 +188,130 @@ def show_landmarks(filename, SHOW_FRAME = True, FLIP = False):
 	return np.asarray(out)
 	
 # Generates a csv string of the ears of each frame (nothing if no face detected)
+def show_ear(filename, SHOW_FRAME = True, FLIP = False):
+	print("Generating landmarks for " + filename)
+	
+	# How much to downsample face for detection
+	FACE_DOWNSAMPLE_RATIO = 4
+
+	# output matrix
+	out = []
+	
+	# grab the indexes of the facial landmarks for the left and
+	# right eye, respectively
+
+	# start the video stream thread
+	vs = cv2.VideoCapture(filename)
+
+	time.sleep(1.0)
+	FRAME_NUM = 0
+	print("Applying classifer to " + filename)
+	
+	print("Video properties:")
+	FPS = vs.get(cv2.CAP_PROP_FPS)
+	FC = vs.get(cv2.CAP_PROP_FRAME_COUNT)
+	F = vs.get(cv2.CAP_PROP_FORMAT)
+	W = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
+	H = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
+	print("\tFPS = " + str(FPS))
+	print("\tFrame count = " + str(FC))
+	print("\tFormat = " + str(F))
+	print("\t(width,height) = (" + str(W) + "," + str(H) + ")")
+	
+	# "dropped" frames
+	NOT_GRABBED = 0
+	
+	# loop over frames from the video stream
+	# stop when we haven't grabbed END_VIDEO_LIMIT frames
+	while FRAME_NUM < FC:
+	
+		# Try to grab frame
+		(grabbed,frame) = vs.read()
+		
+		if(grabbed):
+			FRAME_NUM += 1
+			NOT_GRABBED = 0
+		else:
+			NOT_GRABBED += 1
+			continue
+			
+		if(FLIP):
+			frame = horizontal_flip(frame)
+	
+		# output timestamp and frame
+		#timestamp = 1000.0 * float(FRAME_NUM)/FPS
+		timestamp = FRAME_NUM
+		
+		# Apply transformations (one of them being grayscale)
+		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+		
+		rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+		
+		if(rect is not None):
+			# Resize obtained rectangle for full resolution image
+			rect_resize = dlib.rectangle(
+				left=rect.left() * FACE_DOWNSAMPLE_RATIO, 
+				top=rect.top() * FACE_DOWNSAMPLE_RATIO, 
+				right=rect.right() * FACE_DOWNSAMPLE_RATIO, 
+				bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
+			)	
+		
+			shape = predictor(gray,rect_resize)
+			shape = face_utils.shape_to_np(shape)
+			
+			leftEye = shape[lStart:lEnd]
+			rightEye = shape[rStart:rEnd]
+		
+			leftEAR = eye_aspect_ratio(leftEye)
+			rightEAR = eye_aspect_ratio(rightEye)
+
+			# average the eye aspect ratio together for both eyes
+			ear = (leftEAR + rightEAR) / 2.0
+
+			# compute the convex hull for the left and right eye, then
+			# visualize each of the eyes
+			leftEyeHull = cv2.convexHull(leftEye)
+			rightEyeHull = cv2.convexHull(rightEye)
+
+			cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
+			cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
+			cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
+			
+				
+		if(SHOW_FRAME):
+			display_frame = cv2.resize(frame,(720,480))
+			if(rect is None):
+				cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
+					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+			else:
+				# draw landmarks on face
+				distance_nose_cheek(shape)
+				for (x, y) in [shape[3]]+[shape[33]]:
+					cv2.circle(frame, (x, y), 10, (0, 0, 255), -1)
+				
+			cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
+				cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+				
+			# show the frame
+			cv2.imshow("Frame", display_frame)
+			
+		# output different csv things if face was detected
+		if(rect is not None):
+			out.append([int(timestamp),nan])
+		else:
+			out.append([int(timestamp),nan])
+		
+		if cv2.waitKey(1) & 0xFF == ord('q'):
+			cv2.destroyAllWindows()
+			return out
+			break
+				
+	# do a bit of cleanup
+	cv2.destroyAllWindows()
+	
+	return np.asarray(out)
+	
+# Generates a csv string of the ears of each frame (nothing if no face detected)
 def show_landmarks_webcam(SHOW_FRAME = True, FLIP = False):
 	print("Generating landmarks for webcam")
 	
@@ -310,10 +436,10 @@ predictor = dlib.shape_predictor(shapePredPath)
 # # pd.Series(blink_labels).plot()
 # # plt.show()
 
-# fname = "D:\\blink-detection\\vids\\rv3.MP4"
-# show_landmarks(fname)
+fname = "D:\\blink-detection\\vids\\planesweater4.MP4"
+show_ear(fname)
 
-out = show_landmarks_webcam()
-print(out)
+# out = show_landmarks_webcam()
+# print(out)
 #np.savetxt(csvPath + "out_landmarks.csv", out, delimiter=",")
 

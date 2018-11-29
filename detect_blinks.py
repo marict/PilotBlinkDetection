@@ -234,7 +234,7 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 	# start the video stream thread
 	vs = cv2.VideoCapture(vidPath + filename)
 	
-	time.sleep(1.0)
+	time.sleep(5.0)
 	FRAME_NUM = 0
 	print("Applying classifer to " + vidPath + filename)
 	
@@ -255,7 +255,6 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 	# loop over frames from the video stream
 	# stop when we haven't grabbed END_VIDEO_LIMIT frames
 	while FRAME_NUM < FC:
-		print("in gen_ears")
 	
 		# Try to grab frame
 		(grabbed,frame) = vs.read()
@@ -264,9 +263,11 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 			FRAME_NUM += 1
 			NOT_GRABBED = 0
 		else:
+			print("not grabbed = " + str(NOT_GRABBED))
 			NOT_GRABBED += 1
 			continue
-			
+		
+		print("flipping frame")	
 		if(FLIP):
 			frame = horizontal_flip(frame)
 	
@@ -378,23 +379,23 @@ for filename in os.listdir(vidPath):
 # vidName, ext = os.path.splitext(os.path.basename(file))
 # np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 		
-# # gen ears
-# for file in files:
-	# vidName, ext = os.path.splitext(os.path.basename(file))
-	# out = gen_ears(file,SHOW_FRAME = True)
-	# if(WRITE_TO_CSV):
-		# print("Writing " + str(vidName) + "_ears.csv")
-		# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+# gen ears
+for file in files:
+	vidName, ext = os.path.splitext(os.path.basename(file))
+	out = gen_ears(file,SHOW_FRAME = True)
+	if(WRITE_TO_CSV):
+		print("Writing " + str(vidName) + "_ears.csv")
+		np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 			
-	# print("-----")
+	print("-----")
 
 
-# Label video
-file = files[0]
-out = label_video(file)
-print(out.shape)
-vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
+# # Label video
+# file = files[0]
+# out = label_video(file)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# #np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
 	
 # Label video
 # # for file in files:

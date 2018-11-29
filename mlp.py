@@ -92,7 +92,7 @@ y = np.array(y)
 print(y.reshape((-1,1)).shape)
 
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,train_size=0.80,random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X,y,train_size=0.20,random_state=41)
 print(X_train)
 print(len(X_train))
 print(len(X_test))
@@ -108,7 +108,7 @@ model = Sequential()
 model.add(Dense(100, activation='relu', input_dim=14))
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
-model.fit(X_train,y_train,epochs=10,verbose=1)
+model.fit(X_train,y_train,epochs=50,verbose=1)
 
 y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
 print(np.unique(y_predict))
@@ -119,4 +119,11 @@ precision = precision_score(y_test,y_predict)
 
 print(recall)
 print(precision)
+
+# import test video
+txt1 = csvPath + "planesweater3_ears.csv"
+ears = pd.read_csv(txt1,sep=',',header=None).values
+
+ears = ears[~np.isnan(ears).any(axis=1)]
+
 
