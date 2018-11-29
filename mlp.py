@@ -80,7 +80,12 @@ y = []
 X = []
 for chunk, label in tr_vectors:
 	y.append(label)
+	# gradient in
 	X.append([x[0] for x in chunk] + [x[1] for x in chunk])
+	# gradient out
+	#X.append([x[0] for x in chunk])
+	# only gradient 
+	#X.append([x[1] for x in chunk])
 	
 X = np.array(X)
 y = np.array(y)
@@ -105,11 +110,10 @@ model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
 model.fit(X_train,y_train,epochs=10,verbose=1)
 
-y_predict = np.absolute(np.asarray(model.predict(X_test)).round())
-y_predict = y_predict.flatten()
-print(y_predict)
+y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
+print(np.unique(y_predict))
 print("--")
-print(y_test)
+print(np.unique(y_test))
 recall = recall_score(y_test,y_predict)
 precision = precision_score(y_test,y_predict)
 
