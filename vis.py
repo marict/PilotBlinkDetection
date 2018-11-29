@@ -436,7 +436,7 @@ predictor = dlib.shape_predictor(shapePredPath)
 # # pd.Series(blink_labels).plot()
 # # plt.show()
 
-fname = "D:\\blink-detection\\vids\\planesweater4.MP4"
+fname = "D:\\blink-detection\\vids\\planesweater3.MP4"
 show_ear(fname)
 
 # out = show_landmarks_webcam()

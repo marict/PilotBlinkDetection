@@ -385,7 +385,7 @@ for file in files:
 	out = gen_ears(file,SHOW_FRAME = True)
 	if(WRITE_TO_CSV):
 		print("Writing " + str(vidName) + "_ears.csv")
-		np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+		#np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 			
 	print("-----")
 
