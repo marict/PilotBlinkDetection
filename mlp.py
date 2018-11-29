@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 LABELED_BLINK = 2
-F_VECTOR_LENGTH = 2
+F_VECTOR_LENGTH = 3
 
 basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
 vidPath = basePath + "vids\\"
@@ -92,7 +92,7 @@ y = np.array(y)
 print(y.reshape((-1,1)).shape)
 
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,train_size=0.80,random_state=43)
+X_train, X_test, y_train, y_test = train_test_split(X,y,train_size=0.80,random_state=42)
 print(X_train)
 print(len(X_train))
 print(len(X_test))
@@ -105,7 +105,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 print("defining model")
 model = Sequential()
-model.add(Dense(100, activation='relu', input_dim=10))
+model.add(Dense(100, activation='relu', input_dim=14))
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
 model.fit(X_train,y_train,epochs=10,verbose=1)
