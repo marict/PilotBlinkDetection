@@ -379,15 +379,15 @@ for filename in os.listdir(vidPath):
 # vidName, ext = os.path.splitext(os.path.basename(file))
 # np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 		
-# gen ears
-for file in files:
-	vidName, ext = os.path.splitext(os.path.basename(file))
-	out = gen_ears(file,SHOW_FRAME = True)
-	if(WRITE_TO_CSV):
-		print("Writing " + str(vidName) + "_ears.csv")
-		#np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+# # gen ears
+# for file in files:
+	# vidName, ext = os.path.splitext(os.path.basename(file))
+	# out = gen_ears(file,SHOW_FRAME = True)
+	# if(WRITE_TO_CSV):
+		# print("Writing " + str(vidName) + "_ears.csv")
+		# #np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 			
-	print("-----")
+	# print("-----")
 
 
 # # Label video
@@ -395,7 +395,7 @@ for file in files:
 # out = label_video(file)
 # print(out.shape)
 # vidName, ext = os.path.splitext(os.path.basename(file))
-# #np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
+# np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
 	
 # Label video
 # # for file in files:
