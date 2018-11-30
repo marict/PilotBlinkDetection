@@ -20,4 +20,4 @@ Installation Instructions (Windows 10):
 5. Pip install imutils
 6. You should be good to go! 
   <br />&nbsp;I like to run my python through Notepad++, to do this create run macro with 
-  <br />&nbsp;activate dlib_env && python "$(FULL_CURRENT_PATH)"
+  <br />&nbsp;activate dlib_env && python -i "$(FULL_CURRENT_PATH)"
