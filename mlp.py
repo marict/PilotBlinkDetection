@@ -31,8 +31,6 @@ detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
 detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
 shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"	
 
-
-
 def extract_features_labels(tr):
 
 	# normalize
@@ -135,35 +133,24 @@ raw = raw[~np.isnan(raw).any(axis=1)]
 
 print("extracting features")
 
-# get features
-y = []
-X = []
-for chunk, label in tr_vectors:
-	y.append(label)
-	# gradient in
-	X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
-	
-X = np.array(X)
-y = np.array(y)
-print(y.reshape((-1,1)).shape)
+X,y = extract_features_labels(raw)
+X_train, X_test, y_train, y_test= train_test_split(X,y,test_size=0.33)
 
 model = Sequential()
 model.add(Dense(100, activation='relu', input_dim=14))
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
-model.fit(X,y,epochs=50,verbose=1)
-model.save_weights("D:\\blink-detection\\saved_models\\model.hdf5")
+model.fit(X_train,y_train,epochs=50,verbose=1)
+#model.save_weights(preTrainedPath + "model.hdf5")
 
 # now try on original video
 
-y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
-print(np.unique(y_predict))
-print("--")
-print(np.unique(y_test))
-recall = recall_score(y_test,y_predict)
-precision = precision_score(y_test,y_predict)
-
-
+# y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
+# print(np.unique(y_predict))
+# print("--")
+# print(np.unique(y_test))
+# recall = recall_score(y_test,y_predict)
+# precision = precision_score(y_test,y_predict)
 
 # ---------------------- TEST VIDEO ------------------------
 
