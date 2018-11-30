@@ -7,10 +7,13 @@ import pprint
 import os
 import datetime
 import pandas as pd
+import matplotlib.pyplot as plt
 from numpy import nan
 from numpy import array
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+from keras.models import Sequential
+from keras.layers import Dense
 
 TIMESTAMP = 0
 EAR = 1
@@ -29,22 +32,6 @@ detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
 shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"	
 
 
-print("loading in ears")
-txt1 = csvPath + "planesweater1_ears.csv"
-ears = pd.read_csv(txt1,sep=',',header=None).values
-gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
-ears = np.hstack((ears,gradient))
-
-
-print("loading in labels")
-txt2 = csvPath + "planesweater1_labels.csv"
-labels = pd.read_csv(txt2,sep=',',header=None).values
-tr = np.hstack((ears,labels))
-
-# remove nan entries
-tr = tr[~np.isnan(tr).any(axis=1)]
-
-print("extracting features")
 
 def extract_features_labels(tr):
 
@@ -74,26 +61,79 @@ def extract_features_labels(tr):
 			if(1 not in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
 				tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],0))
 
-	# clear memory
-	del blinkMap
+	pd.Series(blinkMap.flatten()).plot()
 	
-	return tr_vectors
+	X = []
+	y = []
+	for chunk, label in tr_vectors:
+		y.append(label)
+		# gradient in
+		X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
+	
+	return X,y
 
 def extract_features(tr):
-	# remove nan entries
-	tr = tr[~np.isnan(tr).any(axis=1)]
+
 	# normalize
 	tr[:,0] = scipy.stats.zscore(tr[:,EAR])
 	tr[:,1] = scipy.stats.zscore(tr[:,GRADIENT])
 	
 	tr_vectors = []
-	# extract features 
-	for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH,F_VECTOR_LENGTH*2+1):
-		tr_vectors.append(tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1])
+	# extract features with step length
+	for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
+			tr_vectors.append(tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1])
 	
-	return tr_vectors
+	X = []
+	for chunk in tr_vectors:
+		X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
+	X = np.array(X)
+	
+	y = (tr[:,LABELED_BLINK].astype(int))[F_VECTOR_LENGTH:len(tr)-F_VECTOR_LENGTH]
+	
+	return X,y
+	
+def extract_features_chunked(tr):
+	# normalize
+	tr[:,0] = scipy.stats.zscore(tr[:,EAR])
+	tr[:,1] = scipy.stats.zscore(tr[:,GRADIENT])
+	
+	tr_vectors = []
+	# extract features with step length
+	for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
+			tr_vectors.append(tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1])
+	
+	X = []
+	for chunk in tr_vectors:
+		X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
+	X = np.array(X)
+	
+	y = (tr[:,LABELED_BLINK].astype(int))[F_VECTOR_LENGTH:len(tr)-F_VECTOR_LENGTH]
+	
+	return X,y
+	
+def windowize_labels(labels):
+	new_labels = np.zeros(labels.size)
+	for i in range(F_VECTOR_LENGTH,len(labels)-F_VECTOR_LENGTH):
+		if labels[i] == 1:
+			new_labels[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1 
 
-tr_vectors = extract_features_labels(tr)
+	return new_labels
+
+print("loading in ears")
+txt1 = csvPath + "planesweater1_ears.csv"
+ears = pd.read_csv(txt1,sep=',',header=None).values
+gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
+ears = np.hstack((ears,gradient))
+
+print("loading in labels")
+txt2 = csvPath + "planesweater1_labels.csv"
+labels = pd.read_csv(txt2,sep=',',header=None).values
+raw = np.hstack((ears,labels))
+
+# remove nan entries
+raw = raw[~np.isnan(raw).any(axis=1)]
+
+print("extracting features")
 
 # get features
 y = []
@@ -102,33 +142,19 @@ for chunk, label in tr_vectors:
 	y.append(label)
 	# gradient in
 	X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
-	# gradient out
-	#X.append([x[0] for x in chunk])
-	# only gradient 
-	#X.append([x[1] for x in chunk])
 	
 X = np.array(X)
 y = np.array(y)
 print(y.reshape((-1,1)).shape)
 
-
-X_train, X_test, y_train, y_test = train_test_split(X,y,train_size=0.20,random_state=42)
-print(X_train)
-print(len(X_train))
-print(len(X_test))
-print(len(y_train))
-print(len(y_test))
-
-
-# define model
-from keras.models import Sequential
-from keras.layers import Dense
-print("defining model")
 model = Sequential()
 model.add(Dense(100, activation='relu', input_dim=14))
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
-model.fit(X_train,y_train,epochs=50,verbose=1)
+model.fit(X,y,epochs=50,verbose=1)
+model.save_weights("D:\\blink-detection\\saved_models\\model.hdf5")
+
+# now try on original video
 
 y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
 print(np.unique(y_predict))
@@ -137,42 +163,58 @@ print(np.unique(y_test))
 recall = recall_score(y_test,y_predict)
 precision = precision_score(y_test,y_predict)
 
-print(recall)
-print(precision)
+
 
 # ---------------------- TEST VIDEO ------------------------
 
-# import test video
-txt1 = csvPath + "planesweater3_ears.csv"
-ears = pd.read_csv(txt1,sep=',',header=None).values
-gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
-ears = np.hstack((ears,gradient))
+def test_model(fname):
+	model = Sequential()
+	model.add(Dense(100, activation='relu', input_dim=14))
+	model.add(Dense(1))
+	model.compile(optimizer='adam', loss='mse')
+	model.load_weights("D:\\blink-detection\\saved_models\\model.hdf5", by_name=False)
 
-# remove nan entries
-ears = ears[~np.isnan(ears).any(axis=1)]
+	# import test video
+	txt1 = csvPath + fname + "_ears.csv"
+	ears3 = (pd.read_csv(txt1,sep=',',header=None).values)
+	gradient = np.gradient(ears3[:,EAR]).reshape((-1,1))
+	test_data = np.hstack((ears3,gradient))
 
-tr_vectors = extract_features(ears)
+	txt2 = csvPath + fname + "_labels.csv"
+	labels3 = pd.read_csv(txt2,sep=',',header=None).values.reshape((-1,1))
 
-X_test = []
-for chunk in tr_vectors:
-	X_test.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
-X_test = np.array(X_test)
-y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
+	print(test_data.shape)
+	print(labels3.shape)
 
-timestamps = (ears[F_VECTOR_LENGTH:len(ears)-F_VECTOR_LENGTH])[:,TIMESTAMP].reshape((-1,1))
+	test_data = np.hstack((test_data,labels3))
+
+	# remove nan entries
+	test_data = test_data[~np.isnan(test_data).any(axis=1)]
+
+	X_test,y_test = extract_features(test_data)
+
+	y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
 
 
-# y_predict_padded = np.insert(y_predict,list(range(len(y_predict))),[0,0,0])
-y_predict_padded = np.zeros(timestamps.size)
-y_predict_padded[0::7] = y_predict.flatten()
+	y_test = windowize_labels(y_test)
+	pd.Series(y_predict.flatten()).plot()
+	pd.Series(y_test.flatten()).plot()
 
-print(timestamps.shape)
-print(y_predict_padded.shape)
+	recall = recall_score(y_test,y_predict)
+	precision = precision_score(y_test,y_predict)
+	print("recall = " + str(recall))
+	print("precision = " + str(precision))
 
-ts_predictions = np.hstack((timestamps,y_predict_padded.reshape((-1,1))))
+	plt.show()
+	
+#fname = "planesweater3"
+#test_model(fname)
 
-print(ts_predictions)
-np.savetxt(csvPath + "planesweater3_pred.csv", ts_predictions, delimiter=",")
+# fname = "planesweater1"
+# test_model(fname)
+
+# timestamps = (ears[F_VECTOR_LENGTH:len(ears)-F_VECTOR_LENGTH])[:,TIMESTAMP].reshape((-1,1))
+
 
 
 
