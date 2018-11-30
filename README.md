@@ -16,7 +16,7 @@ Installation Instructions (Windows 10):
 3. Create new environment (default has too many conflicts) and activate it
     <br />&nbsp;conda create --name myenv
     <br />&nbsp;activate myenv
-4. conda install dlib, keras, opencv scipy imutils scikit-learn pandas
+4. conda install dlib keras opencv scipy scikit-learn pandas
 5. Pip install imutils
 6. You should be good to go! 
   <br />&nbsp;I like to run my python through Notepad++, to do this create run macro with 
