@@ -36,8 +36,8 @@ shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 def extract_features_labels(tr):
 
 	# normalize
-	tr[:,0] = scipy.stats.zscore(tr[:,EAR])
-	tr[:,1] = scipy.stats.zscore(tr[:,GRADIENT])
+	tr[:,EAR] = scipy.stats.zscore(tr[:,EAR])
+	tr[:,GRADIENT] = scipy.stats.zscore(tr[:,GRADIENT])
 
 	# Maps indicies to blink or not
 	blinkMap = np.array(tr[:,LABELED_BLINK],copy=True)
@@ -53,30 +53,38 @@ def extract_features_labels(tr):
 			# BALANCING DATA
 			for z in range(100):
 				numblinks += 1
-				tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],1))
+				tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],1,i))
 			
 	# extract non blinks
 	for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
 		if(blinkMap[i] == 0):
 			if(1 not in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
-				tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],0))
+				tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],0,i))
 
-	pd.Series(blinkMap.flatten()).plot()
+
+	tr_vectors = sorted(tr_vectors,key=lambda x: x[2])
 	
 	X = []
 	y = []
-	for chunk, label in tr_vectors:
+	for chunk, label, index in tr_vectors:
 		y.append(label)
 		# gradient in
 		X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
+		
+	X = np.asarray(X)
+	y = np.asarray(y)
 	
-	return X,y
+	# pd.Series(blinkMap.flatten()).plot()
+	# pd.Series(y.flatten()).plot()
+	# plt.show()
+	
+	return np.asarray(X),np.asarray(y)
 
 def extract_features(tr):
 
 	# normalize
-	tr[:,0] = scipy.stats.zscore(tr[:,EAR])
-	tr[:,1] = scipy.stats.zscore(tr[:,GRADIENT])
+	tr[:,EAR] = scipy.stats.zscore(tr[:,EAR])
+	tr[:,GRADIENT] = scipy.stats.zscore(tr[:,GRADIENT])
 	
 	tr_vectors = []
 	# extract features with step length
@@ -89,7 +97,6 @@ def extract_features(tr):
 	X = np.array(X)
 	
 	y = (tr[:,LABELED_BLINK].astype(int))[F_VECTOR_LENGTH:len(tr)-F_VECTOR_LENGTH]
-	
 	return X,y
 	
 def extract_features_chunked(tr):
@@ -119,60 +126,12 @@ def windowize_labels(labels):
 
 	return new_labels
 
-print("loading in ears")
-txt1 = csvPath + "planesweater1_ears.csv"
-ears = pd.read_csv(txt1,sep=',',header=None).values
-gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
-ears = np.hstack((ears,gradient))
-
-print("loading in labels")
-txt2 = csvPath + "planesweater1_labels.csv"
-labels = pd.read_csv(txt2,sep=',',header=None).values
-raw = np.hstack((ears,labels))
-
-# remove nan entries
-raw = raw[~np.isnan(raw).any(axis=1)]
-
-print("extracting features")
-
-# get features
-y = []
-X = []
-for chunk, label in tr_vectors:
-	y.append(label)
-	# gradient in
-	X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
-	
-X = np.array(X)
-y = np.array(y)
-print(y.reshape((-1,1)).shape)
-
-model = Sequential()
-model.add(Dense(100, activation='relu', input_dim=14))
-model.add(Dense(1))
-model.compile(optimizer='adam', loss='mse')
-model.fit(X,y,epochs=50,verbose=1)
-model.save_weights("D:\\blink-detection\\saved_models\\model.hdf5")
-
-# now try on original video
-
-y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
-print(np.unique(y_predict))
-print("--")
-print(np.unique(y_test))
-recall = recall_score(y_test,y_predict)
-precision = precision_score(y_test,y_predict)
-
-
-
-# ---------------------- TEST VIDEO ------------------------
-
 def test_model(fname):
 	model = Sequential()
 	model.add(Dense(100, activation='relu', input_dim=14))
 	model.add(Dense(1))
 	model.compile(optimizer='adam', loss='mse')
-	model.load_weights("D:\\blink-detection\\saved_models\\model.hdf5", by_name=False)
+	model.load_weights("D:\\blink-detection\\saved_models\\model2.hdf5", by_name=False)
 
 	# import test video
 	txt1 = csvPath + fname + "_ears.csv"
@@ -195,8 +154,6 @@ def test_model(fname):
 
 	y_predict = (np.asarray(model.predict(X_test)) > 0.5).astype(int)
 
-
-	y_test = windowize_labels(y_test)
 	pd.Series(y_predict.flatten()).plot()
 	pd.Series(y_test.flatten()).plot()
 
@@ -206,6 +163,55 @@ def test_model(fname):
 	print("precision = " + str(precision))
 
 	plt.show()
+	
+print("loading in ears")
+txt1 = csvPath + "planesweater1_ears.csv"
+ears = pd.read_csv(txt1,sep=',',header=None).values
+gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
+ears = np.hstack((ears,gradient))
+
+print("loading in labels")
+txt2 = csvPath + "planesweater1_labels.csv"
+labels = pd.read_csv(txt2,sep=',',header=None).values
+raw = np.hstack((ears,labels))
+
+# remove nan entries
+raw = raw[~np.isnan(raw).any(axis=1)]
+
+print("extracting features")
+
+X,y = extract_features_labels(raw)
+
+model = Sequential()
+model.add(Dense(100, activation='relu', input_dim=14))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+#model.fit(X,y,epochs=50,verbose=1)
+#model.save_weights("D:\\blink-detection\\saved_models\\model2.hdf5")
+model.load_weights("D:\\blink-detection\\saved_models\\model2.hdf5")
+# now try on original video
+
+y_predict = (np.asarray(model.predict(X)) > 0.5).astype(int)
+# print(np.unique(y_predict))
+# print("--")
+# print(np.unique(y))
+
+recall = recall_score(y,y_predict)
+precision = precision_score(y,y_predict)
+
+print(recall)
+print(precision)
+
+pd.Series(y_predict.flatten()).plot()
+pd.Series(y.flatten()/4).plot()
+plt.show()	
+
+print(y_predict)
+
+test_model("planesweater1")
+
+
+
 	
 #fname = "planesweater3"
 #test_model(fname)
