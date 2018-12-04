@@ -44,23 +44,68 @@ shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 def extract_features_labels_true(raw, use_gradient = False):
 	blinkMap = np.zeros(len(raw))
 	true_values = []
-	label = raw.shape[1] - 1
+	label = raw.shape[1]
 	
 	# mark off no 0 zones
-	for i in range(len(raw)):
+	for i in range(raw):
 		if raw[i][label] == 1:
 			blinkMap[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1
 	
-	true_values = []
+	true_values = raw.copy()
 	# remove non-blinks that are within the no 0 zones
-	for i in range(len(raw)):
+	for i in range(raw):
 		if raw[i][label] == 0:
-			if(1 not in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
-				true_values.append(raw[i])
-		else:
-			true_values.append(raw[i])
+			if(1 in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
+				true_values.remove(raw[i])
 				
-	return np.asarray(true_values)
+	return true_values
+
+
+def extract_features_labels_old(tr, use_gradient = False):
+
+	print("extracing features, labels")
+
+	# normalize
+	tr[:,EAR] = scipy.stats.zscore(tr[:,EAR])
+	tr[:,GRADIENT] = scipy.stats.zscore(tr[:,GRADIENT])
+	# tr[:,GRADIENT] = np.zeros(len(tr))
+
+	# Maps indicies to blink or not
+	blinkMap = np.array(tr[:,LABELED_BLINK],copy=True)
+
+	# Mapping frames to their classification
+	tr_vectors = []
+
+	num_blinks = 0
+
+	# extract blinks 
+	for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
+		if(tr[i][LABELED_BLINK] == 1):
+			blinkMap[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1
+			tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],1,i))	
+			num_blinks += 1
+
+	# extract non blinks
+	for i in range(F_VECTOR_LENGTH,len(tr)-F_VECTOR_LENGTH):
+		if(blinkMap[i] == 0):
+			if(1 not in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
+				tr_vectors.append((tr[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1],0,i))
+			
+	tr_vectors = sorted(tr_vectors,key=lambda x: x[2])
+
+	X = []
+	y = []
+	for chunk, label, index in tr_vectors:
+		y.append(label)
+		if(use_gradient):
+			X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
+		else:
+			X.append([x[EAR] for x in chunk])
+		
+	X = np.asarray(X)
+	y = np.asarray(y)
+	
+	return np.hstack((X,y.reshape((-1,1))))
 
 def extract_features_labels_raw(ts,use_gradient = False):
 
@@ -112,19 +157,18 @@ def extract_features_naive(tr):
 # pull out blink number of non blinks
 def under_sample_balance(extracted_data):
 	X,y = X_y(extracted_data)
-	label = X.shape[1]
 	
 	to_balance = np.hstack((X,y.reshape((-1,1))))
 
 	# balance
-	non_blinks = to_balance[to_balance[:,label] == 0]
-	blinks = to_balance[to_balance[:,label] == 1]
+	non_blinks = to_balance[to_balance[:,14] == 0]
+	blinks = to_balance[to_balance[:,14] == 1]
 	idx = np.random.randint(len(non_blinks),size=len(blinks))
 	non_blinks = non_blinks[idx]
 
 	to_balance = np.vstack((blinks,non_blinks))
-	X = to_balance[:,range(label)]
-	y = to_balance[:,label]
+	X = to_balance[:,range(14)]
+	y = to_balance[:,14]
 	
 	return np.hstack((X,y.reshape((-1,1))))
 
@@ -184,7 +228,7 @@ def score(model,X,y):
 
 def model1():
 	model = Sequential()
-	model.add(Dense(100, activation='relu', input_dim=10))
+	model.add(Dense(100, activation='relu', input_dim=14))
 	model.add(Dense(1))
 	model.compile(optimizer='adam', loss='mse')
 	return model
@@ -198,55 +242,26 @@ def model2():
 	model.add(Activation('softmax'))
 	model.compile(optimizer='adam', loss='mse')
 	return model
-	
-TIMESTAMP = 0
-EAR = 0
-GRADIENT = 1
-LABELED_BLINK = 2
-F_VECTOR_LENGTH = 2
 
 	
 # print("loading in ears")
-txt1 = csvPath + "1_EAR.csv"
-ears = pd.read_csv(txt1,sep=',',header=None).values[0:18200]
+txt1 = csvPath + "planesweater1_ears.csv"
+ears = pd.read_csv(txt1,sep=',',header=None).values
 gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
 ears = np.hstack((ears,gradient))
 
 print("loading in labels")
-txt2 = csvPath + "1_labels.csv"
-labels = pd.read_csv(txt2,sep=',',header=None).values[0:18200]
+txt2 = csvPath + "planesweater1_labels.csv"
+labels = pd.read_csv(txt2,sep=',',header=None).values
 raw = np.hstack((ears,labels))
 
 # remove nan entries
 tr = raw[~np.isnan(raw).any(axis=1)]
-raw_features = extract_features_labels_raw(tr,True)
-X,y = X_y(extract_features_labels_true(raw_features))
-
-model = model1()
-model.fit(X,y,epochs=50,verbose=1)
-
+extracted_data = extract_features_labels(tr,True)
+X,y = X_y(extracted_data)
 y_predict = score(model,X,y)
 
-pd.Series(y_predict.flatten()).plot()
-pd.Series(y.flatten()).plot()
-plt.show()
 
-# # train test split
-# X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_state=42)
-
-# raw_train = np.hstack((X_train,y_train.reshape((-1,1))))
-
-# # extract true values from train data
-# extracted_train = extract_features_labels_true(raw_train)
-# model = model1()
-# X_train,y_train = X_y(under_sample_balance(extracted_train))
-# print("training")
-# model.fit(X_train,y_train,epochs=100,verbose=0)
-# y_predict = score(model,X_test,y_test)
-
-# pd.Series(y_predict.flatten()).plot()
-# pd.Series(y_test.flatten()).plot()
-# plt.show()
 
 
 
