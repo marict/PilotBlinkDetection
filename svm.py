@@ -192,19 +192,19 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20,random_st
 
 
 # RANDOM SEARCH
-C = uniform(loc=1,scale=1000)
-gamma = uniform(loc = 0.001, scale = 0.0001)
-hyperparameters = dict(C=C,gamma=gamma,kernel=['rbf'])
+C = uniform(loc=0.001,scale=1000)
+gamma = uniform(loc = 0.001, scale = 10)
+hyperparameters = dict(C=C,gamma=gamma,kernel=['rbf','poly','linear'])
 clf = RandomizedSearchCV(svm.SVC(),hyperparameters,random_state=1,n_iter=100,cv=5,verbose=1)
 best_model = clf.fit(X_train,y_train)
 
 C = best_model.best_estimator_.get_params()['C']
 gamma = best_model.best_estimator_.get_params()['gamma']
-model = svm.SVC(C=C,gamma=gamma,kernel='rbf')
+#model = svm.SVC(C=C,gamma=gamma,kernel='rbf')
 
-print("training model")
-model.fit(X_train,y_train)
-y_predict = score(model,X_test,y_test)
+#print("training model")
+#model.fit(X_train,y_train)
+y_predict = score(clf,X_test,y_test)
 
 pd.Series(y_test.flatten()).plot()
 pd.Series(y_predict.flatten()/2).plot()
