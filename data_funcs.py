@@ -9,19 +9,21 @@ vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
 picPath = basePath + "pics\\"
 preTrainedPath = basePath + "pre_trained_models\\"
+savedModelPath = basePath + "saved_models\\"
 
 detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
 detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
 shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"	
 
 TIMESTAMP = 0
-EAR = 1
-GRADIENT = 2
-LABELED_BLINK = 3
-F_VECTOR_LENGTH = 3
+EAR = 0
+GRADIENT = 1
+LABELED_BLINK = 2
+F_VECTOR_LENGTH = 5
 
 # raw is the raw windows
-def extract_features_labels_true(raw, use_gradient = True):
+# extracts true blinks and true non-blinks for training
+def extract_features_labels_true(raw, use_gradient = False):
 
 	blinkMap = np.zeros(len(raw))
 	true_values = []
@@ -44,7 +46,7 @@ def extract_features_labels_true(raw, use_gradient = True):
 	return np.asarray(true_values)
 
 # extracts features in rolling window fashion
-def extract_features_labels_raw(ts,use_gradient = True):
+def extract_features_labels_raw(ts,use_gradient = False):
 
 	# normalize
 	ts[:,EAR] = scipy.stats.zscore(ts[:,EAR])
