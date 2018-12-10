@@ -2,6 +2,7 @@
 import os
 import numpy as np
 import pandas as pd
+import pickle
 import matplotlib.pyplot as plt
 from scipy.stats import uniform, randint
 from sklearn import svm
@@ -68,42 +69,40 @@ tr = raw[~np.isnan(raw).any(axis=1)]
 raw_features = extract_features_labels_raw(tr)
 extracted_features = extract_features_labels_true(raw_features)
 X,y = X_y(extracted_features)
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20,random_state=1)
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20)
+
+# with open(savedModelPath + "final_gb.pkl", 'rb') as pickle_file:
+    # model = pickle.load(pickle_file)[0]
+
+# y_predict = score(model,X,y)
+
+# pd.Series(y.flatten()).plot()
+# pd.Series(y_predict.flatten()/2).plot()
+# plt.show()
+
 #X_train,y_train = over_sample_balance(X_train,y_train)
 
-svm = svm.SVC(C=1000,gamma=0.01,kernel='rbf')
-tree = DecisionTreeClassifier(max_features="auto", max_depth=2)
+# svm = svm.SVC(C=1000,gamma=0.01,kernel='rbf')
+tree = DecisionTreeClassifier(max_depth=10)
 print("classifier")
 
-ac = AdaBoostClassifier(tree,random_state=1)
+ac = AdaBoostClassifier(tree,random_state=1,n_estimators=200)
 							  
-scorers = {'accuracy_score': make_scorer(accuracy_score),
-		   'precision_score': make_scorer(precision_score),
-			'recall_score': make_scorer(recall_score)}
+# scorers = {'accuracy_score': make_scorer(accuracy_score),
+		   # 'precision_score': make_scorer(precision_score),
+			# 'recall_score': make_scorer(recall_score)}
 			
-param_dist_gb = {
-					'learning_rate':uniform(0.001,0.099), 
-					'n_estimators':randint(100,2000),
-}
-n_iter_search = 20
+# param_dist_gb = {
+					# 'learning_rate':uniform(0.001,0.099), 
+					# 'n_estimators':randint(100,2000),
+# }
+# n_iter_search = 20
 
-ac = RandomizedSearchCV(ac, param_distributions=param_dist_gb, 
-								   refit='precision_score', n_iter=n_iter_search, 
-									cv=5, verbose=10, scoring=scorers, n_jobs=-1)
+# ac = RandomizedSearchCV(ac, param_distributions=param_dist_gb, 
+								   # refit='precision_score', n_iter=n_iter_search, 
+									# cv=5, verbose=10, scoring=scorers, n_jobs=-1)
 							  
-# ac = AdaBoostClassifier(tree,
-							  # algorithm="SAMME.R",
-							  # n_estimators=100,
-							  # random_state=1)
-# ac = AdaBoostClassifier(ac,
-							  # algorithm="SAMME.R",
-							  # n_estimators=100,
-							  # random_state=3)
-							  
-# ac = AdaBoostClassifier(ac,
-							  # algorithm="SAMME.R",
-							  # n_estimators=100,
-							  # random_state=1)
+
 							
 ac.fit(X_train,y_train)
 print("fitted, predicting:")

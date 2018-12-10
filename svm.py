@@ -6,6 +6,7 @@ import pprint
 import os
 import datetime
 import pandas as pd
+import pickle
 import matplotlib.pyplot as plt
 from scipy.stats import uniform
 from sklearn import svm
@@ -45,60 +46,80 @@ def score(model,X,y):
 
 	return y_predict
 
-# STEVEN'S DATA ----------------
+# # STEVEN'S DATA ----------------
 
-print("loading in ears")
-txt1 = csvPath + "1_EAR.csv"
-ears = pd.read_csv(txt1,sep=',',header=None).values[0:18200]
-gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
-ears = np.hstack((ears,gradient))
-
-print("loading in labels")
-txt2 = csvPath + "1_labels.csv"
-labels = pd.read_csv(txt2,sep=',',header=None).values[0:18200]
-raw = np.hstack((ears,labels))
-
-# # MY DATA ------------------
-
-# # print("loading in ears")
-# txt1 = csvPath + "planesweater1_ears.csv"
-# ears = pd.read_csv(txt1,sep=',',header=None).values
+# print("loading in ears")
+# txt1 = csvPath + "1_EAR.csv"
+# ears = pd.read_csv(txt1,sep=',',header=None).values[0:18200]
 # gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
 # ears = np.hstack((ears,gradient))
 
-# # print("loading in labels")
-# txt2 = csvPath + "planesweater1_labels.csv"
-# labels = pd.read_csv(txt2,sep=',',header=None).values
+# print("loading in labels")
+# txt2 = csvPath + "1_labels.csv"
+# labels = pd.read_csv(txt2,sep=',',header=None).values[0:18200]
 # raw = np.hstack((ears,labels))
+
+# MY DATA ------------------
+
+# print("loading in ears")
+txt1 = csvPath + "planesweater1_ears.csv"
+ears = pd.read_csv(txt1,sep=',',header=None).values
+gradient = np.gradient(ears[:,EAR]).reshape((-1,1))
+ears = np.hstack((ears,gradient))
+
+# print("loading in labels")
+txt2 = csvPath + "planesweater1_labels.csv"
+labels = pd.read_csv(txt2,sep=',',header=None).values
+raw = np.hstack((ears,labels))
 
 # remove nan entries
 tr = raw[~np.isnan(raw).any(axis=1)]
 
 # VALIDATE ON EXTRACTED DATA 
 raw_features = extract_features_labels_raw(tr)
-extracted_features = extract_features_labels_true(raw_features)
-X,y = X_y(extracted_features)
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20,random_state=1)
+
+X,y = X_y(raw_features)
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20)
+X_train,y_train = X_y(extract_features_labels_true(np.hstack((X_train,y_train.reshape(-1,1)))))
 
 
-# RANDOM SEARCH
-C = uniform(loc=0.1,scale=1000)
-gamma = uniform(loc = 0.1, scale = 10)
-hyperparameters = dict(C=C,gamma=gamma,kernel=['rbf','poly','linear'])
-clf = RandomizedSearchCV(svm.SVC(),hyperparameters,random_state=1,n_iter=10,cv=5,verbose=1)
-best_model = clf.fit(X_train,y_train)
-
-C = best_model.best_estimator_.get_params()['C']
-gamma = best_model.best_estimator_.get_params()['gamma']
-#model = svm.SVC(C=C,gamma=gamma,kernel='rbf')
-
-#print("training model")
-#model.fit(X_train,y_train)
-y_predict = score(clf,X_test,y_test)
+model = svm.SVC(C=100,gamma=0.1,kernel='linear')
+model.fit(X_train,y_train)
+y_predict = score(model,X_test,y_test)
 
 pd.Series(y_test.flatten()).plot()
 pd.Series(y_predict.flatten()/2).plot()
 plt.show()
+
+
+
+# with open(savedModelPath + "final_linear.pkl", 'rb') as pickle_file:
+    # model = pickle.load(pickle_file)[0]
+
+# y_predict = score(model,X_test,y_test)
+
+# pd.Series(y_test.flatten()).plot()
+# pd.Series(y_predict.flatten()/2).plot()
+# plt.show()
+
+# RANDOM SEARCH
+# C = uniform(loc=0.1,scale=1000)
+# gamma = uniform(loc = 0.1, scale = 10)
+# hyperparameters = dict(C=C,gamma=gamma,kernel=['rbf','poly','linear'])
+# clf = RandomizedSearchCV(svm.SVC(),hyperparameters,random_state=1,n_iter=10,cv=5,verbose=1)
+# best_model = clf.fit(X_train,y_train)
+
+# C = best_model.best_estimator_.get_params()['C']
+# gamma = best_model.best_estimator_.get_params()['gamma']
+# #model = svm.SVC(C=C,gamma=gamma,kernel='rbf')
+
+# #print("training model")
+# #model.fit(X_train,y_train)
+# y_predict = score(clf,X_test,y_test)
+
+# pd.Series(y_test.flatten()).plot()
+# pd.Series(y_predict.flatten()/2).plot()
+# plt.show()
 
 # print("cross validating")
 # cross_val(X,y)
