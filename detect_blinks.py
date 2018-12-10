@@ -13,22 +13,6 @@ import cv2
 import sys,os
 import importlib
 
-
-
-# Every variable declared here is a global
-# basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
-basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
-
-vidPath = basePath + "vids\\"
-csvPath = basePath + "logs\\"
-picPath = basePath + "pics\\"
-preTrainedPath = basePath + "pre_trained_models\\"
-
-detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
-detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
-shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
-
-
 def eye_aspect_ratio(eye):
 	# compute the euclidean distances between the two sets of
 	# vertical eye landmarks (x, y)-coordinates
