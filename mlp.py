@@ -24,65 +24,51 @@ from keras.layers import Convolution1D, MaxPooling1D, AtrousConvolution1D
 from keras.layers.recurrent import LSTM, GRU
 from keras import regularizers
 
-TIMESTAMP = 0
-EAR = 1
-GRADIENT = 2
-LABELED_BLINK = 3
-F_VECTOR_LENGTH = 3
+from data_funcs import *
 
-basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
-vidPath = basePath + "vids\\"
-csvPath = basePath + "logs\\"
-picPath = basePath + "pics\\"
-preTrainedPath = basePath + "pre_trained_models\\"
-
-detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
-detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
-shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"	
-
-# raw is the raw windows
-def extract_features_labels_true(raw, use_gradient = False):
-	blinkMap = np.zeros(len(raw))
-	true_values = []
-	label = raw.shape[1] - 1
+# # raw is the raw windows
+# def extract_features_labels_true(raw, use_gradient = False):
+	# blinkMap = np.zeros(len(raw))
+	# true_values = []
+	# label = raw.shape[1] - 1
 	
-	# mark off no 0 zones
-	for i in range(len(raw)):
-		if raw[i][label] == 1:
-			blinkMap[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1
+	# # mark off no 0 zones
+	# for i in range(len(raw)):
+		# if raw[i][label] == 1:
+			# blinkMap[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1
 	
-	true_values = []
-	# remove non-blinks that are within the no 0 zones
-	for i in range(len(raw)):
-		if raw[i][label] == 0:
-			if(1 not in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
-				true_values.append(raw[i])
-		else:
-			true_values.append(raw[i])
+	# true_values = []
+	# # remove non-blinks that are within the no 0 zones
+	# for i in range(len(raw)):
+		# if raw[i][label] == 0:
+			# if(1 not in blinkMap[i - F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1]):
+				# true_values.append(raw[i])
+		# else:
+			# true_values.append(raw[i])
 				
-	return np.asarray(true_values)
+	# return np.asarray(true_values)
 
-def extract_features_labels_raw(ts,use_gradient = False):
+# def extract_features_labels_raw(ts,use_gradient = False):
 
-	# normalize
-	ts[:,EAR] = scipy.stats.zscore(ts[:,EAR])
-	ts[:,GRADIENT] = scipy.stats.zscore(ts[:,GRADIENT])
+	# # normalize
+	# ts[:,EAR] = scipy.stats.zscore(ts[:,EAR])
+	# ts[:,GRADIENT] = scipy.stats.zscore(ts[:,GRADIENT])
 	
-	tr_vectors = []
-	# extract features with step length
-	for i in range(F_VECTOR_LENGTH,len(ts)-F_VECTOR_LENGTH):
-			tr_vectors.append(ts[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1])
+	# tr_vectors = []
+	# # extract features with step length
+	# for i in range(F_VECTOR_LENGTH,len(ts)-F_VECTOR_LENGTH):
+			# tr_vectors.append(ts[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1])
 		
-	X = []
-	for chunk in tr_vectors:
-		if(use_gradient):
-			X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
-		else:
-			X.append([x[EAR] for x in chunk])
-	X = np.array(X)
+	# X = []
+	# for chunk in tr_vectors:
+		# if(use_gradient):
+			# X.append([x[EAR] for x in chunk] + [x[GRADIENT] for x in chunk])
+		# else:
+			# X.append([x[EAR] for x in chunk])
+	# X = np.array(X)
 	
-	y = (ts[:,LABELED_BLINK].astype(int))[F_VECTOR_LENGTH:len(ts)-F_VECTOR_LENGTH]
-	return np.hstack((X,y.reshape((-1,1))))
+	# y = (ts[:,LABELED_BLINK].astype(int))[F_VECTOR_LENGTH:len(ts)-F_VECTOR_LENGTH]
+	# return np.hstack((X,y.reshape((-1,1))))
 	
 def extract_features_naive(tr):
 	# normalize
@@ -109,44 +95,45 @@ def extract_features_naive(tr):
 			new_labels[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1] = 1 
 
 	return new_labels
-# pull out blink number of non blinks
-def under_sample_balance(extracted_data):
-	X,y = X_y(extracted_data)
-	label = X.shape[1]
 	
-	to_balance = np.hstack((X,y.reshape((-1,1))))
+# # pull out blink number of non blinks
+# def under_sample_balance(extracted_data):
+	# X,y = X_y(extracted_data)
+	# label = X.shape[1]
+	
+	# to_balance = np.hstack((X,y.reshape((-1,1))))
 
-	# balance
-	non_blinks = to_balance[to_balance[:,label] == 0]
-	blinks = to_balance[to_balance[:,label] == 1]
-	idx = np.random.randint(len(non_blinks),size=len(blinks))
-	non_blinks = non_blinks[idx]
+	# # balance
+	# non_blinks = to_balance[to_balance[:,label] == 0]
+	# blinks = to_balance[to_balance[:,label] == 1]
+	# idx = np.random.randint(len(non_blinks),size=len(blinks))
+	# non_blinks = non_blinks[idx]
 
-	to_balance = np.vstack((blinks,non_blinks))
-	X = to_balance[:,range(label)]
-	y = to_balance[:,label]
+	# to_balance = np.vstack((blinks,non_blinks))
+	# X = to_balance[:,range(label)]
+	# y = to_balance[:,label]
 	
-	return np.hstack((X,y.reshape((-1,1))))
+	# return np.hstack((X,y.reshape((-1,1))))
 
-# copy non blink number of blinks
-def over_sample_balance(extracted_data):
-	X,y = X_y(extracted_data)
-	to_balance = np.hstack((X,y.reshape((-1,1))))
+# # copy non blink number of blinks
+# def over_sample_balance(extracted_data):
+	# X,y = X_y(extracted_data)
+	# to_balance = np.hstack((X,y.reshape((-1,1))))
 
-	# balance
-	non_blinks = to_balance[to_balance[:,14] == 0]
-	blinks = to_balance[to_balance[:,14] == 1]
+	# # balance
+	# non_blinks = to_balance[to_balance[:,14] == 0]
+	# blinks = to_balance[to_balance[:,14] == 1]
 	
-	balance_num = int(len(non_blinks)/len(blinks))
-	to_balance = np.concatenate((blinks,non_blinks),axis=0)
+	# balance_num = int(len(non_blinks)/len(blinks))
+	# to_balance = np.concatenate((blinks,non_blinks),axis=0)
 	
-	for i in range(balance_num):
-		to_balance = np.concatenate((to_balance,blinks),axis=0)
+	# for i in range(balance_num):
+		# to_balance = np.concatenate((to_balance,blinks),axis=0)
 	
-	X = to_balance[:,range(14)]
-	y = to_balance[:,14]
+	# X = to_balance[:,range(14)]
+	# y = to_balance[:,14]
 	
-	return np.hstack((X,y.reshape((-1,1))))
+	# return np.hstack((X,y.reshape((-1,1))))
 	
 	
 # pulls off the last column as labels, the rest as feature vectors
@@ -231,22 +218,22 @@ pd.Series(y_predict.flatten()).plot()
 pd.Series(y.flatten()).plot()
 plt.show()
 
-# # train test split
-# X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_state=42)
+# train test split
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_state=42)
 
-# raw_train = np.hstack((X_train,y_train.reshape((-1,1))))
+raw_train = np.hstack((X_train,y_train.reshape((-1,1))))
 
-# # extract true values from train data
-# extracted_train = extract_features_labels_true(raw_train)
-# model = model1()
-# X_train,y_train = X_y(under_sample_balance(extracted_train))
-# print("training")
-# model.fit(X_train,y_train,epochs=100,verbose=0)
-# y_predict = score(model,X_test,y_test)
+# extract true values from train data
+extracted_train = extract_features_labels_true(raw_train)
+model = model1()
+X_train,y_train = X_y(under_sample_balance(extracted_train))
+print("training")
+model.fit(X_train,y_train,epochs=100,verbose=0)
+y_predict = score(model,X_test,y_test)
 
-# pd.Series(y_predict.flatten()).plot()
-# pd.Series(y_test.flatten()).plot()
-# plt.show()
+pd.Series(y_predict.flatten()).plot()
+pd.Series(y_test.flatten()).plot()
+plt.show()
 
 
 
