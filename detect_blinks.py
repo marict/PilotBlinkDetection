@@ -57,23 +57,19 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
         if(len(faces) == 0):
             return (None,None)
 
-        faces = sorted(faces,reverse = True,key=lambda x: x[2] * x[3])
         # use largest face found
+        faces = sorted(faces,reverse = True,key=lambda x: x[2] * x[3])
         face = faces[0]
         (x,y,w,h) = face
-        rect = dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
+        rect = openCv_rect_to_dlib(face)
         detectType = 2
     else:
-
         # use largest face found
         # use first face found
         rects = sorted(rects,reverse=True,key=lambda x: x.area())
         rect = rects[0]
 
     return rect, detectType
-
-def detectEyes(gray,FACE_DOWNSAMPLE_RATIO):
-
 
 # flip frame
 def horizontal_flip(src):
@@ -180,7 +176,7 @@ def label_video(video,starting_frame = 0,FLIP = False):
 
 # Generates a csv string of the ears of each frame (nothing if no face detected)
 def gen_images(filename, SHOW_FRAME = True, FLIP = False):
-    print("Generating EARS for " + vidPath + filename)
+    print("Generating images for " + vidPath + filename)
 
     # How much to downsample face for detection
     FACE_DOWNSAMPLE_RATIO = 4
@@ -239,7 +235,7 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType, eyes  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -252,6 +248,7 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
 
             shape = predictor(gray,rect_resize)
             shape = face_utils.shape_to_np(shape)
+
             # extract the left and right eye coordinates, then use the
             # coordinates to compute the eye aspect ratio for both eyes
             leftEye = shape[lStart:lEnd]
@@ -322,6 +319,10 @@ detector2 = cv2.CascadeClassifier(detector2Path)
 # dlibs CNN based classifier
 # currently too slow even with rescaling
 detector3 = dlib.cnn_face_detection_model_v1(detector3Path)
+
+# openCV's eye detector
+detector4_eyes = cv2.CascadeClassifier(detector4Path)
+
 # dlibs facial landmark detector (68 points)
 predictor = dlib.shape_predictor(shapePredPath)
 
@@ -337,7 +338,10 @@ for filename in os.listdir(vidPath):
 # Working on a function for image generation
 # =============================================================================
 
-print("Generating EARS for " + vidPath + filename)
+FLIP = False
+SHOW_FRAME = True
+
+print("Generating images for " + vidPath + filename)
 
 # How much to downsample face for detection
 FACE_DOWNSAMPLE_RATIO = 4
@@ -392,22 +396,13 @@ while FRAME_NUM < FC:
     # output timestamp and frame
     #timestamp = 1000.0 * float(FRAME_NUM)/FPS
     timestamp = FRAME_NUM
-
     # Apply transformations (one of them being grayscale)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    for (x,y,w,h) in faces:
-        cv.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_color = img[y:y+h, x:x+w]
-        eyes = eye_cascade.detectMultiScale(roi_gray)
-        for (ex,ey,ew,eh) in eyes:
-            cv.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
 
     rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
 
     if(rect is not None):
+
         # Resize obtained rectangle for full resolution image
         rect_resize = dlib.rectangle(
             left=rect.left() * FACE_DOWNSAMPLE_RATIO,
@@ -415,6 +410,12 @@ while FRAME_NUM < FC:
             right=rect.right() * FACE_DOWNSAMPLE_RATIO,
             bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
         )
+        face = frame[rect_resize.top():rect_resize.bottom(),rect_resize.left():rect_resize.right()]
+        eyes = detector4_eyes.detectMultiScale(face)
+
+        # draw eyes
+        for (ex,ey,ew,eh) in eyes:
+            cv2.rectangle(face,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
 
         shape = predictor(gray,rect_resize)
         shape = face_utils.shape_to_np(shape)
@@ -467,7 +468,6 @@ while FRAME_NUM < FC:
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
-        return out
         break
 
 # do a bit of cleanup
