@@ -1,6 +1,8 @@
 import numpy as np
 import scipy
 import os
+import cv2
+import dlib
 
 # GLOBALS
 # basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
@@ -13,6 +15,7 @@ savedModelPath = basePath + "saved_models\\"
 
 detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
 detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
+detector4Path = preTrainedPath + "haarcascade_eye.xml"
 shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 
 TIMESTAMP = 0
@@ -27,6 +30,15 @@ F_VECTOR_LENGTH = 6
 def remove_nans(raw):
     print("not completed")
 
+# converts dlib rectangle to openCV rectangle
+# Dealing with inclusive exclusive boundary
+def dlib_rect_to_openCv(r):
+    return r.top(), r.left(),r.right() - r.left(), r.bottom() - r.top()
+
+# converts dlib rectangle to openCV rectangle
+# Dealing with inclusive exclusive boundary
+def openCv_rect_to_dlib(x,y,w,h):
+    return dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
 
 # raw is the raw windows
 # extracts true blinks and true non-blinks for training
@@ -62,7 +74,6 @@ def extract_features_labels_raw(ts):
 	# extract features with step length
 	for i in range(F_VECTOR_LENGTH,len(ts)-F_VECTOR_LENGTH):
 			tr_vectors.append(ts[i-F_VECTOR_LENGTH:i+F_VECTOR_LENGTH+1])
-
 	X = []
 	for chunk in tr_vectors:
 			X.append([x[EAR] for x in chunk])
