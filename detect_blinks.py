@@ -13,6 +13,8 @@ import cv2
 import sys,os
 import importlib
 
+from data_funcs import *
+
 def eye_aspect_ratio(eye):
 	# compute the euclidean distances between the two sets of
 	# vertical eye landmarks (x, y)-coordinates
@@ -106,7 +108,7 @@ def label_video(video,FLIP = False):
 				while True:
 					key2 = cv2.waitKey(0)
 					if key2 == ord('b'):
-						video_label[current_frame - (len(video_frame) - frame_counter - 1)] = 1
+						video_label[current_frame - (len(video_frame) - frame_counter)] = 1
 						cv2.putText(frame_pause, "Paused", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 						cv2.putText(frame_pause, "Labeled: {}".format(current_frame - (len(video_frame) - frame_counter-1)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 						cv2.imshow("Frame", frame_pause)
@@ -160,7 +162,7 @@ def label_video(video,FLIP = False):
 					key2 = cv2.waitKey(0)
 					# label
 					if key2 == ord('b'):
-						video_label[current_frame - (len(video_frame) - frame_counter - 1)] = 1
+						video_label[current_frame - (len(video_frame) - frame_counter)] = 1
 						cv2.putText(frame_pause, "Paused", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 						cv2.putText(frame_pause, "Labeled: {}".format(current_frame - (len(video_frame) - frame_counter-1)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 						cv2.imshow("Frame", frame_pause)
@@ -374,12 +376,12 @@ for filename in os.listdir(vidPath):
 	# print("-----")
 
 
-# # Label video
-# file = files[0]
-# out = label_video(file)
-# print(out.shape)
-# vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_labels.csv", out, delimiter=",")
+# Label video
+file = files[0]
+out = label_video(file)
+print(out.shape)
+vidName, ext = os.path.splitext(os.path.basename(file))
+np.savetxt(csvPath + vidName + "__openclosed_labels.csv", out, delimiter=",")
 	
 # Label video
 # # for file in files:
