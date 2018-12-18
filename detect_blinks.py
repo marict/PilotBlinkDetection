@@ -173,7 +173,6 @@ def label_video(video,starting_frame = 0,FLIP = False):
     vs.release()
     return video_label
 
-
 # Generates a csv string of the ears of each frame (nothing if no face detected)
 def gen_images(filename, SHOW_FRAME = True, FLIP = False):
     print("Generating images for " + vidPath + filename)
@@ -329,6 +328,7 @@ predictor = dlib.shape_predictor(shapePredPath)
 # get files
 files = []
 for filename in os.listdir(vidPath):
+<<<<<<< HEAD
     print(filename)
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
@@ -473,3 +473,43 @@ while FRAME_NUM < FC:
 # do a bit of cleanup
 cv2.destroyAllWindows()
 
+=======
+	print(filename)
+	if(filename.endswith(".MP4") or filename.endswith(".mp4")):
+		files.append(filename)
+
+# gen ears
+# file = files[0]
+# out = gen_ears(file)
+# out = np.asarray(out)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+		
+# # gen ears
+# for file in files:
+	# vidName, ext = os.path.splitext(os.path.basename(file))
+	# out = gen_ears(file,SHOW_FRAME = True)
+	# if(WRITE_TO_CSV):
+		# print("Writing " + str(vidName) + "_ears.csv")
+		# #np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+			
+	# print("-----")
+
+
+# Label video
+file = files[0]
+out = label_video(file)
+print(out.shape)
+vidName, ext = os.path.splitext(os.path.basename(file))
+np.savetxt(csvPath + vidName + "__openclosed_labels.csv", out, delimiter=",")
+	
+# Label video
+# # for file in files:
+	# # vidName, ext = os.path.splitext(os.path.basename(filename))	
+	# # print("labeling " + vidPath + filename)
+	# # video_label = label_video(file)
+	# # if(WRITE_TO_CSV):
+		# # np.savetxt(csvPath + vidName + "_labels.csv", video_label, delimiter=",")
+		
+print("Done!")
