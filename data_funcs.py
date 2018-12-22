@@ -23,6 +23,12 @@ EAR = 0
 LABELED_BLINK = 1
 F_VECTOR_LENGTH = 6
 
+# Converts np array to tuple
+def totuple(a):
+    try:
+        return tuple(totuple(i) for i in a)
+    except TypeError:
+        return a
 
 # Remove's the areas of the data
 # where a face was not found by a window chunk
@@ -37,9 +43,10 @@ def dlib_rect_to_openCv(r):
 
 # converts dlib rectangle to openCV rectangle
 # Dealing with inclusive exclusive boundary
-def openCv_rect_to_dlib(x,y,w,h):
+def openCv_rect_to_dlib(r):
+    (x,y,w,h) = r
     return dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
-
+    
 # raw is the raw windows
 # extracts true blinks and true non-blinks for training
 def extract_features_labels_true(raw):

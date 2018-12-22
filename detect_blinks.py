@@ -12,8 +12,11 @@ import dlib
 import cv2
 import sys,os
 import importlib
+import pdb
 
 from data_funcs import *
+
+shape = None
 
 def eye_aspect_ratio(eye):
     # compute the euclidean distances between the two sets of
@@ -60,7 +63,6 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
         # use largest face found
         faces = sorted(faces,reverse = True,key=lambda x: x[2] * x[3])
         face = faces[0]
-        (x,y,w,h) = face
         rect = openCv_rect_to_dlib(face)
         detectType = 2
     else:
@@ -114,7 +116,7 @@ def label_video(video,starting_frame = 0,FLIP = False):
             if(FLIP):
                 frame = horizontal_flip(frame)
             video_frame.append(frame)
-            if(len(video_frame) >= 1*int(FPS)):
+            if(len(video_frame) >= 8*int(FPS)):
                 video_frame.pop(0)
             cv2.putText(frame, "Frame: {}".format(current_frame), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             cv2.imshow("Frame", frame)
@@ -130,8 +132,16 @@ def label_video(video,starting_frame = 0,FLIP = False):
                     # label
                     if key2 == ord('b'):
                         video_label[current_frame - (len(video_frame) - frame_counter)] = 1
+                        vidName, ext = os.path.splitext(os.path.basename(file))
+                        np.savetxt(csvPath + vidName + "__openclosed_labels.csv", video_label, delimiter=",")                        
                         cv2.putText(frame_pause, "Paused", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                         cv2.putText(frame_pause, "Labeled: {}".format(current_frame - (len(video_frame) - frame_counter-1)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        cv2.putText(frame_pause, "Saved data", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                        
+                        # go forward a frame
+                        if frame_counter < len(video_frame) - 1:
+                            frame_counter += 1
+                        frame_pause = video_frame[int(frame_counter)]
                         cv2.imshow("Frame", frame_pause)
                     # go back one frame
                     elif key2 == ord('k'):
@@ -150,8 +160,7 @@ def label_video(video,starting_frame = 0,FLIP = False):
                         cv2.putText(frame_pause, "Paused", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                         cv2.imshow("Frame", frame_pause)
             elif key == ord('q'):
-                break
-
+                break    
             current_frame += 1
         else:
             # vs.set(cv2.CAP_PROP_POS_FRAMES, current_frame-1)
@@ -173,9 +182,143 @@ def label_video(video,starting_frame = 0,FLIP = False):
     vs.release()
     return video_label
 
-# Generates a csv string of the ears of each frame (nothing if no face detected)
+# NOT FULLY IMPLEMENTED: DOES OPENCV EYE DETECTION 
 def gen_images(filename, SHOW_FRAME = True, FLIP = False):
     print("Generating images for " + vidPath + filename)
+
+    # How much to downsample face for detection
+    FACE_DOWNSAMPLE_RATIO = 4
+
+    # output matrix
+    out = []
+
+    # grab the indexes of the facial landmarks for the left and
+    # right eye, respectively
+    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+
+    # start the video stream thread
+    vs = cv2.VideoCapture(vidPath + filename)
+
+    time.sleep(5.0)
+    FRAME_NUM = 0
+    print("Applying classifer to " + vidPath + filename)
+
+    print("Video properties:")
+    FPS = vs.get(cv2.CAP_PROP_FPS)
+    FC = vs.get(cv2.CAP_PROP_FRAME_COUNT)
+    F = vs.get(cv2.CAP_PROP_FORMAT)
+    W = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
+    H = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print("\tFPS = " + str(FPS))
+    print("\tFrame count = " + str(FC))
+    print("\tFormat = " + str(F))
+    print("\t(width,height) = (" + str(W) + "," + str(H) + ")")
+
+    # "dropped" frames
+    NOT_GRABBED = 0
+
+    # loop over frames from the video stream
+    # stop when we haven't grabbed END_VIDEO_LIMIT frames
+    while FRAME_NUM < FC:
+
+        # Try to grab frame
+        (grabbed,frame) = vs.read()
+
+        if(grabbed):
+            FRAME_NUM += 1
+            NOT_GRABBED = 0
+        else:
+            print("not grabbed = " + str(NOT_GRABBED))
+            NOT_GRABBED += 1
+            continue
+
+        if(FLIP):
+            frame = horizontal_flip(frame)
+
+        # output timestamp and frame
+        #timestamp = 1000.0 * float(FRAME_NUM)/FPS
+        timestamp = FRAME_NUM
+        # Apply transformations (one of them being grayscale)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+
+        if(rect is not None):
+
+            # Resize obtained rectangle for full resolution image
+            rect_resize = dlib.rectangle(
+                left=rect.left() * FACE_DOWNSAMPLE_RATIO,
+                top=rect.top() * FACE_DOWNSAMPLE_RATIO,
+                right=rect.right() * FACE_DOWNSAMPLE_RATIO,
+                bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
+            )
+            face = frame[rect_resize.top():rect_resize.bottom(),rect_resize.left():rect_resize.right()]
+            eyes = detector4_eyes.detectMultiScale(face)
+
+            # draw eyes
+            for (ex,ey,ew,eh) in eyes:
+                cv2.rectangle(face,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+
+            shape = predictor(gray,rect_resize)
+            shape = face_utils.shape_to_np(shape)
+            # extract the left and right eye coordinates, then use the
+            # coordinates to compute the eye aspect ratio for both eyes
+            leftEye = shape[lStart:lEnd]
+            rightEye = shape[rStart:rEnd]
+
+            leftEAR = eye_aspect_ratio(leftEye)
+            rightEAR = eye_aspect_ratio(rightEye)
+
+            # average the eye aspect ratio together for both eyes
+            ear = (leftEAR + rightEAR) / 2.0
+
+            # compute the convex hull for the left and right eye, then
+            # visualize each of the eyes
+            leftEyeHull = cv2.convexHull(leftEye)
+            rightEyeHull = cv2.convexHull(rightEye)
+
+            cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
+            cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
+            cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
+
+
+        if(SHOW_FRAME):
+            display_frame = cv2.resize(frame,(1280,720))
+            # draw the total number of blinks on the frame along with
+            # the computed eye aspect ratio for the frame
+            # Reset counter if we did not find any faces
+            if(rect is None):
+                cv2.putText(display_frame, "EAR: N\\A", (300, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            else:
+                cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+            cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+            # show the frame
+            cv2.imshow("Frame", display_frame)
+
+        # output different csv things if face was detected
+        if(rect is not None):
+            out.append([int(timestamp),ear])
+        else:
+            out.append([int(timestamp),nan])
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.destroyAllWindows()
+            break
+
+    # do a bit of cleanup
+    cv2.destroyAllWindows()
+    
+# Generates a csv string of the ears of each frame (nothing if no face detected)
+def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
+    print("Generating ears  for " + vidPath + filename)
 
     # How much to downsample face for detection
     FACE_DOWNSAMPLE_RATIO = 4
@@ -234,7 +377,7 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType, eyes  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -305,7 +448,142 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
 
     return np.asarray(out)
 
+# Generates a csv string of the landmarks of each frame (nothing if no face detected)
+def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
+    print("Generating landmarks  for " + vidPath + filename)
 
+    # How much to downsample face for detection
+    FACE_DOWNSAMPLE_RATIO = 4
+
+    # output matrix
+    out = []
+
+    # grab the indexes of the facial landmarks for the left and
+    # right eye, respectively
+    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+
+    # start the video stream thread
+    vs = cv2.VideoCapture(vidPath + filename)
+
+    time.sleep(5.0)
+    FRAME_NUM = 0
+    print("Applying classifer to " + vidPath + filename)
+
+    print("Video properties:")
+    FPS = vs.get(cv2.CAP_PROP_FPS)
+    FC = vs.get(cv2.CAP_PROP_FRAME_COUNT)
+    F = vs.get(cv2.CAP_PROP_FORMAT)
+    W = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
+    H = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print("\tFPS = " + str(FPS))
+    print("\tFrame count = " + str(FC))
+    print("\tFormat = " + str(F))
+    print("\t(width,height) = (" + str(W) + "," + str(H) + ")")
+
+    # "dropped" frames
+    NOT_GRABBED = 0
+
+    # loop over frames from the video stream
+    # stop when we haven't grabbed END_VIDEO_LIMIT frames
+    while FRAME_NUM < FC:
+
+        # Try to grab frame
+        (grabbed,frame) = vs.read()
+
+        if(grabbed):
+            FRAME_NUM += 1
+            NOT_GRABBED = 0
+        else:
+            print("not grabbed = " + str(NOT_GRABBED))
+            NOT_GRABBED += 1
+            continue
+
+        if(FLIP):
+            frame = horizontal_flip(frame)
+
+        # output timestamp and frame
+        #timestamp = 1000.0 * float(FRAME_NUM)/FPS
+        timestamp = FRAME_NUM
+
+        # Apply transformations (one of them being grayscale)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+
+        if(rect is not None):
+            # Resize obtained rectangle for full resolution image
+            rect_resize = dlib.rectangle(
+                left=rect.left() * FACE_DOWNSAMPLE_RATIO,
+                top=rect.top() * FACE_DOWNSAMPLE_RATIO,
+                right=rect.right() * FACE_DOWNSAMPLE_RATIO,
+                bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
+            )
+
+            shape = predictor(gray,rect_resize)
+            shape = face_utils.shape_to_np(shape)
+
+            # extract the left and right eye coordinates, then use the
+            # coordinates to compute the eye aspect ratio for both eyes
+            leftEye = shape[lStart:lEnd]
+            rightEye = shape[rStart:rEnd]
+
+            leftEAR = eye_aspect_ratio(leftEye)
+            rightEAR = eye_aspect_ratio(rightEye)
+
+            # average the eye aspect ratio together for both eyes
+            ear = (leftEAR + rightEAR) / 2.0
+
+            # compute the convex hull for the left and right eye, then
+            # visualize each of the eyes
+            leftEyeHull = cv2.convexHull(leftEye)
+            rightEyeHull = cv2.convexHull(rightEye)
+            
+            cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
+            cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
+            cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
+            cv2.circle(frame, totuple(shape[28]), 1, (255,0,0),2)
+            
+            # adjust shapes so that middle (28) is centered
+            centered_shape = shape - shape[28] + [frame.shape[1]/2,frame.shape[0]/2]
+            centered_shape = centered_shape.astype(np.uint64)
+            cv2.polylines(frame, [centered_shape], 1, (0, 0, 255), 2)
+        
+        # output different csv things if face was detected
+        if(rect is not None):
+            out.append(centered_shape.flatten())
+        else:
+            out.append(np.zeros(136))
+
+        if(SHOW_FRAME):
+            display_frame = cv2.resize(frame,(1280,720))
+            # draw the total number of blinks on the frame along with
+            # the computed eye aspect ratio for the frame
+            # Reset counter if we did not find any faces
+            if(rect is None):
+                cv2.putText(display_frame, "EAR: N\\A", (300, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            else:
+                cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+            cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+            # show the frame
+            cv2.imshow("Frame", display_frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.destroyAllWindows()
+            return out
+            break
+
+    # do a bit of cleanup
+    cv2.destroyAllWindows()
+    return np.asarray(out)
+    
 # ---------------------------------------------------------------------------
 
 WRITE_TO_CSV = True
@@ -316,8 +594,8 @@ detector = dlib.get_frontal_face_detector()
 # openCVs HAAR cascade classifier
 detector2 = cv2.CascadeClassifier(detector2Path)
 # dlibs CNN based classifier
-# currently too slow even with rescaling
-detector3 = dlib.cnn_face_detection_model_v1(detector3Path)
+# currently too slow even with rescaling, requires version 1.9 of dlib
+# detector3 = dlib.cnn_face_detection_model_v1(detector3Path)
 
 # openCV's eye detector
 detector4_eyes = cv2.CascadeClassifier(detector4Path)
@@ -328,163 +606,17 @@ predictor = dlib.shape_predictor(shapePredPath)
 # get files
 files = []
 for filename in os.listdir(vidPath):
-<<<<<<< HEAD
     print(filename)
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
-
-
-# =============================================================================
-# Working on a function for image generation
-# =============================================================================
-
-FLIP = False
-SHOW_FRAME = True
-
-print("Generating images for " + vidPath + filename)
-
-# How much to downsample face for detection
-FACE_DOWNSAMPLE_RATIO = 4
-
-# output matrix
-out = []
-
-# grab the indexes of the facial landmarks for the left and
-# right eye, respectively
-(lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
-(rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
-
-# start the video stream thread
-vs = cv2.VideoCapture(vidPath + filename)
-
-time.sleep(5.0)
-FRAME_NUM = 0
-print("Applying classifer to " + vidPath + filename)
-
-print("Video properties:")
-FPS = vs.get(cv2.CAP_PROP_FPS)
-FC = vs.get(cv2.CAP_PROP_FRAME_COUNT)
-F = vs.get(cv2.CAP_PROP_FORMAT)
-W = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
-H = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
-print("\tFPS = " + str(FPS))
-print("\tFrame count = " + str(FC))
-print("\tFormat = " + str(F))
-print("\t(width,height) = (" + str(W) + "," + str(H) + ")")
-
-# "dropped" frames
-NOT_GRABBED = 0
-
-# loop over frames from the video stream
-# stop when we haven't grabbed END_VIDEO_LIMIT frames
-while FRAME_NUM < FC:
-
-    # Try to grab frame
-    (grabbed,frame) = vs.read()
-
-    if(grabbed):
-        FRAME_NUM += 1
-        NOT_GRABBED = 0
-    else:
-        print("not grabbed = " + str(NOT_GRABBED))
-        NOT_GRABBED += 1
-        continue
-
-    if(FLIP):
-        frame = horizontal_flip(frame)
-
-    # output timestamp and frame
-    #timestamp = 1000.0 * float(FRAME_NUM)/FPS
-    timestamp = FRAME_NUM
-    # Apply transformations (one of them being grayscale)
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
-
-    if(rect is not None):
-
-        # Resize obtained rectangle for full resolution image
-        rect_resize = dlib.rectangle(
-            left=rect.left() * FACE_DOWNSAMPLE_RATIO,
-            top=rect.top() * FACE_DOWNSAMPLE_RATIO,
-            right=rect.right() * FACE_DOWNSAMPLE_RATIO,
-            bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
-        )
-        face = frame[rect_resize.top():rect_resize.bottom(),rect_resize.left():rect_resize.right()]
-        eyes = detector4_eyes.detectMultiScale(face)
-
-        # draw eyes
-        for (ex,ey,ew,eh) in eyes:
-            cv2.rectangle(face,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-
-        shape = predictor(gray,rect_resize)
-        shape = face_utils.shape_to_np(shape)
-        # extract the left and right eye coordinates, then use the
-        # coordinates to compute the eye aspect ratio for both eyes
-        leftEye = shape[lStart:lEnd]
-        rightEye = shape[rStart:rEnd]
-
-        leftEAR = eye_aspect_ratio(leftEye)
-        rightEAR = eye_aspect_ratio(rightEye)
-
-        # average the eye aspect ratio together for both eyes
-        ear = (leftEAR + rightEAR) / 2.0
-
-        # compute the convex hull for the left and right eye, then
-        # visualize each of the eyes
-        leftEyeHull = cv2.convexHull(leftEye)
-        rightEyeHull = cv2.convexHull(rightEye)
-
-        cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
-        cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
-        cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
-
-
-    if(SHOW_FRAME):
-        display_frame = cv2.resize(frame,(1280,720))
-        # draw the total number of blinks on the frame along with
-        # the computed eye aspect ratio for the frame
-        # Reset counter if we did not find any faces
-        if(rect is None):
-            cv2.putText(display_frame, "EAR: N\\A", (300, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        else:
-            cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
-        cv2.putText(display_frame, "Frame: {}".format(FRAME_NUM), (10, 60),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
-        # show the frame
-        cv2.imshow("Frame", display_frame)
-
-    # output different csv things if face was detected
-    if(rect is not None):
-        out.append([int(timestamp),ear])
-    else:
-        out.append([int(timestamp),nan])
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        cv2.destroyAllWindows()
-        break
-
-# do a bit of cleanup
-cv2.destroyAllWindows()
-
-=======
-	print(filename)
-	if(filename.endswith(".MP4") or filename.endswith(".mp4")):
-		files.append(filename)
-
-# gen ears
-# file = files[0]
-# out = gen_ears(file)
-# out = np.asarray(out)
-# print(out.shape)
-# vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+        
+# gen landmarks
+file = files[0]
+out = gen_landmarks(file)
+out = np.asarray(out)
+print(out.shape)
+vidName, ext = os.path.splitext(os.path.basename(file))
+np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 		
 # # gen ears
 # for file in files:
@@ -501,15 +633,8 @@ cv2.destroyAllWindows()
 file = files[0]
 out = label_video(file)
 print(out.shape)
-vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "__openclosed_labels.csv", out, delimiter=",")
+#vidName, ext = os.path.splitext(os.path.basename(file))
+#np.savetxt(csvPath + vidName + "__openclosed_labels.csv", out, delimiter=",")
 	
-# Label video
-# # for file in files:
-	# # vidName, ext = os.path.splitext(os.path.basename(filename))	
-	# # print("labeling " + vidPath + filename)
-	# # video_label = label_video(file)
-	# # if(WRITE_TO_CSV):
-		# # np.savetxt(csvPath + vidName + "_labels.csv", video_label, delimiter=",")
-		
+
 print("Done!")
