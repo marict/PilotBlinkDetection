@@ -149,11 +149,12 @@ params = {
 					'n_estimators':randint(5,500),
 }
 #model = RandomizedSearchCV(model,params,scoring='precision',verbose=10,n_jobs=-1,n_iter=1)
+cross_val(model,X,y)
 print("fitting")
+#X_train,y_train = under_sample_balance(X_train,y_train)
 model.fit(X_train,y_train)
 print("finished boost")
 y_predict = score(model,X_test,y_test)
-cross_val(model,X,y)
 
 # # forest 5, 95 prec
 # # tree, 90 prec
