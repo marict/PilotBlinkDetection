@@ -28,10 +28,7 @@ def cross_val(model,X,y):
     print("\tmean fit time: " + str(np.mean(score_lr['fit_time'])))
     print("\tmean recall: " + str(np.mean(score_lr['test_rec_macro'])))
     print("\tmean precision: " + str(np.mean(score_lr['test_prec_macro'])))
-
-
-
- 
+    
 def prec(y,y_predict):
     pdb.set_trace()
     return precision_score(y,y_predict)
@@ -58,20 +55,20 @@ features = pd.read_csv(txt1,sep=',',header=None).values
 txt2 = csvPath + "paulsim2_openclosed_labels.csv"
 labels = pd.read_csv(txt2,sep=',',header=None).values
 raw = np.hstack((features,labels))
-X,y = raw[:,range(raw.shape[1]-1)].astype(int), raw[:,raw.shape[1]-1].astype(int)
+X,y = raw[:,range(raw.shape[1]-1)], raw[:,raw.shape[1]-1].astype(int)
 X = augment_landmarks_window(X)
 X = scipy.stats.zscore(X,axis=0)
 
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20)
 
 # ================== SVM 
-model = svm.SVC(gamma='scale',C=2)
+model = svm.SVC(gamma='scale')
 print("fitting")
 model.fit(X_train,y_train)
 print("finished svm")
 y_predict = score(model,X_test,y_test)
-# cross_val(model,X,y)
-# # svm, 93 prec
+# # cross_val(model,X,y)
+# # # svm, 93 prec
 # ==================
 
 # ================== MLP
@@ -88,7 +85,7 @@ y_predict = score(model,X_test,y_test)
 # model.fit(X_train,y_train)
 # print("finished boost")
 # y_predict = score(model,X_test,y_test)
-#cross_val(model,X,y)
+# cross_val(model,X,y)
 # ================
 
 

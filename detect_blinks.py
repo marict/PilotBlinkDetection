@@ -434,9 +434,9 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
 
         # output different csv things if face was detected
         if(rect is not None):
-            out.append([int(timestamp),ear])
+            out.append(ear)
         else:
-            out.append([int(timestamp),nan])
+            out.append(0)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
@@ -610,13 +610,21 @@ for filename in os.listdir(vidPath):
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
         
-# gen landmarks
+# # gen landmarks
+# file = files[0]
+# out = gen_landmarks(file)
+# out = np.asarray(out)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+
+# gen ears
 file = files[0]
-out = gen_landmarks(file)
+out = gen_ears(file)
 out = np.asarray(out)
 print(out.shape)
 vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 		
 # # gen ears
 # for file in files:
