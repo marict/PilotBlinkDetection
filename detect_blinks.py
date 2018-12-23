@@ -629,12 +629,12 @@ np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 	# print("-----")
 
 
-# Label video
-file = files[0]
-out = label_video(file)
-print(out.shape)
-#vidName, ext = os.path.splitext(os.path.basename(file))
-#np.savetxt(csvPath + vidName + "__openclosed_labels.csv", out, delimiter=",")
+# # Label video
+# file = files[0]
+# out = label_video(file)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "_openclosed_labels_13000.csv", out, delimiter=",")
 	
 
 print("Done!")
