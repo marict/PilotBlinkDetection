@@ -24,12 +24,16 @@ raw = np.hstack((features,labels))
 X_test,y_test = raw[:,range(raw.shape[1]-1)].astype(int), raw[:,raw.shape[1]-1].astype(int)
 X_test = augment_landmarks_window(X_test)
 
-forest = RandomForestClassifier(n_estimators=5,n_jobs=-1)
-model = AdaBoostClassifier(forest,n_estimators=forest.n_estimators)
-# forest.n_estimators
+#forest = RandomForestClassifier(n_estimators=5,n_jobs=-1)
+#model = AdaBoostClassifier(forest,n_estimators=forest.n_estimators)
+print(X_train.shape)
+model = svm.SVC(kernel='rbf',gamma='scale')
+# SVM gets 85 recall, 90 precision
+# best so far with window 2, rbf, scale
+
 print("fitting")
 model.fit(X_train,y_train)
-print("finished boost")
+print("finished fit")
 y_predict = score(model,X_test,y_test)
 
 pd.Series(y_test.flatten()).plot()

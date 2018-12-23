@@ -108,7 +108,7 @@ def openCv_rect_to_dlib(r):
     (x,y,w,h) = r
     return dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
    
-# Identifies the apex of blinks as middle of closed predictions
+# Identifies the apex of blinks as middle of eye-closed predictions
 def get_apexes(y_predict):
     apexes = np.zeros(len(y_predict))
     i = 0 
@@ -147,7 +147,7 @@ def score(model,X,y):
     return y_predict
    
 # augments landmark data with a rolling window
-def augment_landmarks_window(X,WINDOW = 3):
+def augment_landmarks_window(X,WINDOW = 2):
     new_X = np.zeros((X.shape[0],X.shape[1] * WINDOW * 2))
     for i in range(WINDOW,len(X)-WINDOW):
         new_X[i] = np.hstack(X[i-WINDOW:i+WINDOW])
