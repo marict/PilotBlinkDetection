@@ -1,8 +1,69 @@
+# import the necessary packages
+from scipy.spatial import distance as dist
+from imutils import face_utils
+from operator import itemgetter
+from numpy import nan
+
+import numpy as np
+import argparse
+import imutils
+import time
+import dlib
+import cv2
+import sys,os
+import importlib
+import pdb
+
 import numpy as np
 import scipy
 import os
 import cv2
 import dlib
+
+# try using an svm for the series analysis
+import numpy as np
+import math
+import scipy.stats
+import pprint
+import os
+import datetime
+import pandas as pd
+import pickle
+import pdb
+import matplotlib.pyplot as plt
+
+from scipy.stats import uniform, randint
+from numpy import *
+
+# sklearn
+from sklearn.preprocessing import normalize
+from sklearn import svm
+from sklearn.base import clone
+from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, accuracy_score
+from sklearn.externals import joblib
+from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+# Keras stuff
+import keras
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.normalization import BatchNormalization
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
+from keras.optimizers import RMSprop, Adam, SGD, Nadam
+from keras.layers.advanced_activations import *
+from keras.layers import LSTM, Convolution1D, MaxPooling1D, AtrousConvolution1D
+from keras import regularizers
+from keras.wrappers.scikit_learn import KerasClassifier
+import functools
+from keras import backend as K
 
 # GLOBALS
 # basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
@@ -46,7 +107,52 @@ def dlib_rect_to_openCv(r):
 def openCv_rect_to_dlib(r):
     (x,y,w,h) = r
     return dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
+   
+# Identifies the apex of blinks as middle of closed predictions
+def get_apexes(y_predict):
+    apexes = np.zeros(len(y_predict))
+    i = 0 
+    while(i < len(y_predict)):
+        if(y_predict[i] == 1):
+            j = i+1
+            while(j < len(y_predict) and y_predict[j] == 1):
+                j += 1
+            apexes[int((i+j-1)/2)] = 1
+            i = j
+        i += 1 
+    return apexes
+   
+# Smooths prediction data with time window
+def smooth(y_predict,WINDOW=30):
+    for i in range(len(y_predict)):
+        if(y_predict[i] == 1):
+            for j in range(WINDOW):
+                if(i+j < len(y_predict)):
+                    if(y_predict[i+j] == 1):
+                        y_predict[i:i+j] = 1
+   
+# Scores a model
+def score(model,X,y):
+    y_predict = (model.predict(X) > 0.5).astype(int)
     
+    print("\ttotal labels predicted: " + str(np.sum(y_predict)))
+    recall = recall_score(y,y_predict)
+    precision = precision_score(y,y_predict)
+    accuracy = accuracy_score(y,y_predict)
+
+    print("\trecall: " + str(recall))
+    print("\tPrecision: " + str(precision))
+    print("\tAccuracy: " + str(accuracy))
+
+    return y_predict
+   
+# augments landmark data with a rolling window
+def augment_landmarks_window(X,WINDOW = 3):
+    new_X = np.zeros((X.shape[0],X.shape[1] * WINDOW * 2))
+    for i in range(WINDOW,len(X)-WINDOW):
+        new_X[i] = np.hstack(X[i-WINDOW:i+WINDOW])
+    return new_X
+   
 # raw is the raw windows
 # extracts true blinks and true non-blinks for training
 def extract_features_labels_true(raw):
