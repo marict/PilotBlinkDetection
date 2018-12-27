@@ -1,22 +1,4 @@
-# import the necessary packages
-from scipy.spatial import distance as dist
-from imutils import face_utils
-from operator import itemgetter
-from numpy import nan
-
-import numpy as np
-import argparse
-import imutils
-import time
-import dlib
-import cv2
-import sys,os
-import importlib
-import pdb
-
 from data_funcs import *
-
-shape = None
 
 def eye_aspect_ratio(eye):
     # compute the euclidean distances between the two sets of
@@ -584,6 +566,103 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
     cv2.destroyAllWindows()
     return np.asarray(out)
     
+# Starts a live demo of facial classification and landmark detection	
+def live_demo():
+    print("Live Demo")
+
+    # How much to downsample face for detection
+    FACE_DOWNSAMPLE_RATIO = 1
+
+    # grab the indexes of the facial landmarks for the left and
+    # right eye, respectively
+    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+
+    # start the video stream thread
+    vs = VideoStream(src=0).start()
+
+    time.sleep(5.0)
+
+    # "dropped" frames
+    NOT_GRABBED = 0
+
+    # loop over frames from the video stream
+    # stop when we haven't grabbed END_VIDEO_LIMIT frames
+    while True:
+
+        # Try to grab frame
+        frame = vs.read()
+
+        if(frame is None):
+            print("not grabbed = " + str(NOT_GRABBED))
+            NOT_GRABBED += 1
+            time.sleep(1.0)
+            continue
+
+        # Apply transformations (one of them being grayscale)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+
+        if(rect is not None):
+            # Resize obtained rectangle for full resolution image
+            rect_resize = dlib.rectangle(
+                left=rect.left() * FACE_DOWNSAMPLE_RATIO,
+                top=rect.top() * FACE_DOWNSAMPLE_RATIO,
+                right=rect.right() * FACE_DOWNSAMPLE_RATIO,
+                bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
+            )
+
+            shape = predictor(gray,rect_resize)
+            shape = face_utils.shape_to_np(shape)
+
+            # extract the left and right eye coordinates, then use the
+            # coordinates to compute the eye aspect ratio for both eyes
+            leftEye = shape[lStart:lEnd]
+            rightEye = shape[rStart:rEnd]
+
+            leftEAR = eye_aspect_ratio(leftEye)
+            rightEAR = eye_aspect_ratio(rightEye)
+
+            # average the eye aspect ratio together for both eyes
+            ear = (leftEAR + rightEAR) / 2.0
+
+            # compute the convex hull for the left and right eye, then
+            # visualize each of the eyes
+            leftEyeHull = cv2.convexHull(leftEye)
+            rightEyeHull = cv2.convexHull(rightEye)
+            
+            for x,y in shape:
+                cv2.circle(frame,(x,y),1,(255,0,0),2)
+            
+            cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
+            cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
+            cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
+            cv2.circle(frame, totuple(shape[28]), 1, (255,0,0),2)  
+
+        display_frame = cv2.resize(frame,(1280,720))
+        # draw the total number of blinks on the frame along with
+        # the computed eye aspect ratio for the frame
+        # Reset counter if we did not find any faces
+        if(rect is None):
+            cv2.putText(display_frame, "EAR: N\\A", (300, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        else:
+            cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+        # show the frame
+        cv2.imshow("Frame", display_frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.destroyAllWindows()
+            return
+
+    # do a bit of cleanup
+    cv2.destroyAllWindows()
+
 # ---------------------------------------------------------------------------
 
 WRITE_TO_CSV = True
@@ -610,6 +689,9 @@ for filename in os.listdir(vidPath):
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
         
+# Live demo
+live_demo()
+
 # # gen landmarks
 # file = files[0]
 # out = gen_landmarks(file)
@@ -619,12 +701,12 @@ for filename in os.listdir(vidPath):
 # np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 
 # gen ears
-file = files[0]
-out = gen_ears(file)
-out = np.asarray(out)
-print(out.shape)
-vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+# file = files[0]
+# out = gen_ears(file)
+# out = np.asarray(out)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 		
 # # gen ears
 # for file in files:

@@ -7,6 +7,7 @@ from numpy import nan
 import numpy as np
 import argparse
 import imutils
+from imutils.video import VideoStream
 import time
 import dlib
 import cv2
@@ -52,22 +53,22 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 # Keras stuff
-import keras
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.normalization import BatchNormalization
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
-from keras.optimizers import RMSprop, Adam, SGD, Nadam
-from keras.layers.advanced_activations import *
-from keras.layers import LSTM, Convolution1D, MaxPooling1D, AtrousConvolution1D
-from keras import regularizers
-from keras.wrappers.scikit_learn import KerasClassifier
-import functools
-from keras import backend as K
+# import keras
+# from keras.models import Sequential
+# from keras.layers.core import Dense, Dropout, Activation, Flatten
+# from keras.layers.normalization import BatchNormalization
+# from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
+# from keras.optimizers import RMSprop, Adam, SGD, Nadam
+# from keras.layers.advanced_activations import *
+# from keras.layers import LSTM, Convolution1D, MaxPooling1D, AtrousConvolution1D
+# from keras import regularizers
+# from keras.wrappers.scikit_learn import KerasClassifier
+# import functools
+# from keras import backend as K
 
 # GLOBALS
-# basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
-basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
+basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
+#basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
 vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
 picPath = basePath + "pics\\"
@@ -145,7 +146,25 @@ def score(model,X,y):
     print("\tAccuracy: " + str(accuracy))
 
     return y_predict
-   
+  
+# remove data that has a NULL (zero) frame in it
+# should be called AFTER augmentation to prevent bleeding
+# from two disparate parts of the data set
+def remove_no_faces(X,Y,WINDOW = 2):
+    pdb.set_trace()
+    X_out = []
+    y_out = []
+    n = int(X.shape[1]/(WINDOW * 4))
+    null_frame = "0" * n
+    for x,y in zip(X,Y):
+        x_str = ''.join(str(int(i)) for i in x)
+        if null_frame not in x_str:
+            X_out.append(x)
+            y_out.append(y)
+            
+    pdb.set_trace()
+    return np.asarray(X_out), np.asarray(y_out)
+  
 # augments landmark data with a rolling window
 def augment_landmarks_window(X,WINDOW = 2):
     new_X = np.zeros((X.shape[0],X.shape[1] * WINDOW * 2))
