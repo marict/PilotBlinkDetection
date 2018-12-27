@@ -150,6 +150,7 @@ def score(model,X,y):
 # remove data that has a NULL (zero) frame in it
 # should be called AFTER augmentation to prevent bleeding
 # from two disparate parts of the data set
+# Note that this has not had a very noticable effect
 def remove_no_faces(X,Y,WINDOW = 2):
     pdb.set_trace()
     X_out = []
