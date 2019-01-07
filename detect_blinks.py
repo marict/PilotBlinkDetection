@@ -171,7 +171,7 @@ def label_video(video,starting_frame = 0,FLIP = False):
             # It is better to wait for a while for the next frame to be ready
             continue
 
-        if current_frame == num_frames or current_frame == num_frames - 1:
+        if current_frame == num_frames or current_frame == num_frames - 2:
             # If the number of captured frames is equal to the total number of frames,
             # we stop
             key2 = cv2.waitKey(0)
@@ -611,20 +611,20 @@ for filename in os.listdir(vidPath):
         files.append(filename)
         
 # # gen landmarks
-# file = files[0]
-# out = gen_landmarks(file)
-# out = np.asarray(out)
-# print(out.shape)
-# vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
-
-# gen ears
 file = files[0]
-out = gen_ears(file)
+out = gen_landmarks(file)
 out = np.asarray(out)
 print(out.shape)
 vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
+np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+
+# gen ears
+# file = files[0]
+# out = gen_ears(file)
+# out = np.asarray(out)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 		
 # # gen ears
 # for file in files:
@@ -642,7 +642,7 @@ np.savetxt(csvPath + vidName + "_ears.csv", out, delimiter=",")
 # out = label_video(file)
 # print(out.shape)
 # vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_openclosed_labels_13000.csv", out, delimiter=",")
+# np.savetxt(csvPath + vidName + "_openclosed_labels.csv", out, delimiter=",")
 	
 
 print("Done!")
