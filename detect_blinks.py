@@ -15,13 +15,21 @@ def eye_aspect_ratio(eye):
 
     # return the eye aspect ratio
     return ear
-
+  
+# TODO IMPLEMENT DNN DETECTION
+def dnn_detection(gray):
+    min_conf = 0.8
+  
 # returns:
 # rect = dlib.rectangle or None if no faces found
 # detectType to say which detector the rectangle represents
 #
 # if detector does not find a face than detector2 will try
-def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
+def detect_faces(frame,FACE_DOWNSAMPLE_RATIO):
+
+    # Transform to greyscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
     detectType = 1
 
     # rescale frame for face detection
@@ -126,7 +134,6 @@ def face_align(shape,rect):
         
     return output
     
-
 # tool built by Steven to label the video data
 # p to pause, b to label, k to go back, any other button goes forward
 # video is file name
@@ -292,7 +299,7 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType = detect_faces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
 
@@ -427,7 +434,7 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType  = detect_faces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -555,11 +562,11 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
         # output timestamp and frame
         #timestamp = 1000.0 * float(FRAME_NUM)/FPS
         timestamp = FRAME_NUM
-
+        
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        
+        rect, detectType  = detect_faces(frame, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -676,7 +683,7 @@ def live_demo():
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType  = detect_faces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -752,6 +759,9 @@ detector2 = cv2.CascadeClassifier(detector2Path)
 
 # openCV's eye detector
 detector4_eyes = cv2.CascadeClassifier(detector4Path)
+
+# Aleksandr Rybnikov's res10 dnn face detector
+detector5 = cv2.dnn.readNetFromCaffe(detector5Path1, detector5Path2)
 
 # dlibs facial landmark detector (68 points)
 predictor = dlib.shape_predictor(shapePredPath)

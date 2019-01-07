@@ -79,6 +79,10 @@ savedModelPath = basePath + "saved_models\\"
 detector2Path = preTrainedPath + "haarcascade_frontalface_default.xml"
 detector3Path = preTrainedPath + "mmod_human_face_detector.dat"
 detector4Path = preTrainedPath + "haarcascade_eye.xml"
+
+detector5Path1 = preTrainedPath + "deploy.prototxt"
+detector5Path2 = preTrainedPath + "res10_300x300_ssd_iter_140000.caffemodel"
+
 shapePredPath = preTrainedPath + "shape_predictor_68_face_landmarks.dat"
 
 TIMESTAMP = 0
