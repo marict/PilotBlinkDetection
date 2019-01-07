@@ -58,6 +58,74 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
 # flip frame
 def horizontal_flip(src):
     return cv2.flip(src,-1)
+	
+# face alignment
+# centers face, scales it to common size, rotates the face so that the
+# eye landmarks lie on a flat line
+# shape: dlib landmarks
+# rect: facial bounding box
+def face_align(shape,rect):
+
+    #desiredLeftEye=(0.35, 0.35)
+    desiredLeftEye=(0.35, 0.35)
+    desiredFaceWidth = 1024
+    desiredFaceHeight = desiredFaceWidth
+
+    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+    leftEyePts = shape[lStart:lEnd]
+    rightEyePts = shape[rStart:rEnd]
+    
+    # compute the center of mass for each eye
+    leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
+    rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
+
+    # compute the angle between the eye centroids
+    dY = rightEyeCenter[1] - leftEyeCenter[1]
+    dX = rightEyeCenter[0] - leftEyeCenter[0]
+    angle = np.degrees(np.arctan2(dY, dX)) - 180
+    
+    # compute the desired right eye x-coordinate based on the
+    # desired x-coordinate of the left eye
+    desiredRightEyeX = 1.0 - desiredLeftEye[0]
+
+    # determine the scale of the new resulting image by taking
+    # the ratio of the distance between eyes in the *current*
+    # image to the ratio of distance between eyes in the
+    # *desired* image
+    dist = np.sqrt((dX ** 2) + (dY ** 2))
+    desiredDist = (desiredRightEyeX - desiredLeftEye[0])
+    desiredDist *= desiredFaceWidth
+    scale = desiredDist / dist
+    
+    # compute center (x, y)-coordinates (i.e., the median point)
+    # between the two eyes in the input image
+    eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2,
+        (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
+    
+    # grab the rotation matrix for rotating and scaling the face
+    M = cv2.getRotationMatrix2D(eyesCenter, angle, scale)
+    
+    # update the translation component of the matrix
+    tX = desiredFaceWidth * 0.5
+    tY = desiredFaceHeight * desiredLeftEye[1]
+    M[0, 2] += (tX - eyesCenter[0])
+    M[1, 2] += (tY - eyesCenter[1])
+    
+    #pdb.set_trace()
+    
+    # Do the matrix multiplication manually to adjust each point
+    aug_ones = np.ones(len(shape))
+    shape_aug = np.hstack((shape,aug_ones.reshape(-1,1)))
+    output = np.matmul(shape_aug,M.T).astype(int)
+   
+    # apply the affine transformation
+    # (w, h) = (desiredFaceWidth, desiredFaceHeight)
+    # output = cv2.warpAffine(shape, M, (w, h),
+        # flags=cv2.INTER_CUBIC)
+        
+    return output
+    
 
 # tool built by Steven to label the video data
 # p to pause, b to label, k to go back, any other button goes forward
@@ -527,9 +595,15 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
             cv2.circle(frame, totuple(shape[28]), 1, (255,0,0),2)
             
             # adjust shapes so that middle (28) is centered
-            centered_shape = shape - shape[28] + [frame.shape[1]/2,frame.shape[0]/2]
-            centered_shape = centered_shape.astype(np.uint64)
-            cv2.polylines(frame, [centered_shape], 1, (0, 0, 255), 2)
+            # centered_shape = shape - shape[28] + [frame.shape[1]/2,frame.shape[0]/2]
+            # centered_shape = centered_shape.astype(np.uint64)
+            
+            #pdb.set_trace()
+            
+            # adjust landmarks
+            centered_shape = face_align(shape,rect)
+            for(x,y) in centered_shape:
+                cv2.circle(frame,(x,y),5,(0,0,255),5)
         
         # output different csv things if face was detected
         if(rect is not None):
@@ -690,14 +764,14 @@ for filename in os.listdir(vidPath):
         files.append(filename)
         
 # Live demo
-live_demo()
+# live_demo()
 
-# # gen landmarks
-# file = files[0]
-# out = gen_landmarks(file)
-# out = np.asarray(out)
-# print(out.shape)
-# vidName, ext = os.path.splitext(os.path.basename(file))
+# gen landmarks
+file = files[0]
+out = gen_landmarks(file)
+out = np.asarray(out)
+print(out.shape)
+vidName, ext = os.path.splitext(os.path.basename(file))
 # np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 
 # gen ears
