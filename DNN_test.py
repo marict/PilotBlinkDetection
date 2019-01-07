@@ -18,7 +18,6 @@ image = cv2.imread(image_path)
 blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0,
     (300, 300), (104.0, 177.0, 123.0))
     
-    
 # pass the blob through the network and obtain the detections and
 # predictions
 print("[INFO] computing object detections...")
@@ -31,7 +30,7 @@ for i in range(0, detections.shape[2]):
     # extract the confidence (i.e., probability) associated with the
     # prediction
     confidence = detections[0, 0, i, 2]
- 
+    print("confidence = " + str(confidence))
     # filter out weak detections by ensuring the `confidence` is
     # greater than the minimum confidence
     if confidence > min_conf:
@@ -39,6 +38,7 @@ for i in range(0, detections.shape[2]):
         # object
         box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
         (startX, startY, endX, endY) = box.astype("int")
+        print("\t box = " + str(box))
  
         # draw the bounding box of the face along with the associated
         # probability
