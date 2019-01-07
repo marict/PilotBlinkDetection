@@ -67,8 +67,9 @@ from sklearn.tree import DecisionTreeClassifier
 # from keras import backend as K
 
 # GLOBALS
-basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
+#basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
 #basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
+basePath = "D:\\blink-detection\\"
 vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
 picPath = basePath + "pics\\"
