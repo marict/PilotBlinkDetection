@@ -18,6 +18,7 @@ raw = np.vstack((raw,raw2))
 
 X_train,y_train = raw[:,range(raw.shape[1]-1)].astype(int), raw[:,raw.shape[1]-1].astype(int)
 X_train = augment_landmarks_window(X_train)
+# X_train, y_train = remove_no_faces(X_train,y_train)
 
 # Testing data
 # print("loading in landmarks")
@@ -30,6 +31,7 @@ labels = pd.read_csv(txt2,sep=',',header=None).values
 raw = np.hstack((features,labels))
 X_test,y_test = raw[:,range(raw.shape[1]-1)].astype(int), raw[:,raw.shape[1]-1].astype(int)
 X_test = augment_landmarks_window(X_test)
+# X_test, y_test = remove_no_faces(X_test,y_test)
 
 pdb.set_trace()
 

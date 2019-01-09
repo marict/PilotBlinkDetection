@@ -1,22 +1,4 @@
-# import the necessary packages
-from scipy.spatial import distance as dist
-from imutils import face_utils
-from operator import itemgetter
-from numpy import nan
-
-import numpy as np
-import argparse
-import imutils
-import time
-import dlib
-import cv2
-import sys,os
-import importlib
-import pdb
-
 from data_funcs import *
-
-shape = None
 
 def eye_aspect_ratio(eye):
     # compute the euclidean distances between the two sets of
@@ -33,13 +15,21 @@ def eye_aspect_ratio(eye):
 
     # return the eye aspect ratio
     return ear
-
+  
+# TODO IMPLEMENT DNN DETECTION
+def dnn_detection(gray):
+    min_conf = 0.8
+  
 # returns:
 # rect = dlib.rectangle or None if no faces found
 # detectType to say which detector the rectangle represents
 #
 # if detector does not find a face than detector2 will try
-def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
+def detect_faces(frame,FACE_DOWNSAMPLE_RATIO):
+
+    # Transform to greyscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
     detectType = 1
 
     # rescale frame for face detection
@@ -76,7 +66,74 @@ def detectFaces(gray,FACE_DOWNSAMPLE_RATIO):
 # flip frame
 def horizontal_flip(src):
     return cv2.flip(src,-1)
+	
+# face alignment
+# centers face, scales it to common size, rotates the face so that the
+# eye landmarks lie on a flat line
+# shape: dlib landmarks
+# rect: facial bounding box
+def face_align(shape,rect):
 
+    #desiredLeftEye=(0.35, 0.35)
+    desiredLeftEye=(0.35, 0.35)
+    desiredFaceWidth = 1024
+    desiredFaceHeight = desiredFaceWidth
+
+    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+    leftEyePts = shape[lStart:lEnd]
+    rightEyePts = shape[rStart:rEnd]
+    
+    # compute the center of mass for each eye
+    leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
+    rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
+
+    # compute the angle between the eye centroids
+    dY = rightEyeCenter[1] - leftEyeCenter[1]
+    dX = rightEyeCenter[0] - leftEyeCenter[0]
+    angle = np.degrees(np.arctan2(dY, dX)) - 180
+    
+    # compute the desired right eye x-coordinate based on the
+    # desired x-coordinate of the left eye
+    desiredRightEyeX = 1.0 - desiredLeftEye[0]
+
+    # determine the scale of the new resulting image by taking
+    # the ratio of the distance between eyes in the *current*
+    # image to the ratio of distance between eyes in the
+    # *desired* image
+    dist = np.sqrt((dX ** 2) + (dY ** 2))
+    desiredDist = (desiredRightEyeX - desiredLeftEye[0])
+    desiredDist *= desiredFaceWidth
+    scale = desiredDist / dist
+    
+    # compute center (x, y)-coordinates (i.e., the median point)
+    # between the two eyes in the input image
+    eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2,
+        (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
+    
+    # grab the rotation matrix for rotating and scaling the face
+    M = cv2.getRotationMatrix2D(eyesCenter, angle, scale)
+    
+    # update the translation component of the matrix
+    tX = desiredFaceWidth * 0.5
+    tY = desiredFaceHeight * desiredLeftEye[1]
+    M[0, 2] += (tX - eyesCenter[0])
+    M[1, 2] += (tY - eyesCenter[1])
+    
+    #pdb.set_trace()
+    
+    # Do the matrix multiplication manually to adjust each point
+    aug_ones = np.ones(len(shape))
+    shape_aug = np.hstack((shape,aug_ones.reshape(-1,1)))
+    output = np.matmul(shape_aug,M.T).astype(int)
+   
+    # apply the affine transformation
+    # (w, h) = (desiredFaceWidth, desiredFaceHeight)
+    # output = cv2.warpAffine(shape, M, (w, h),
+        # flags=cv2.INTER_CUBIC)
+        
+    return output
+    
 # tool built by Steven to label the video data
 # p to pause, b to label, k to go back, any other button goes forward
 # video is file name
@@ -242,7 +299,7 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType = detect_faces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
 
@@ -377,7 +434,7 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        rect, detectType  = detect_faces(gray, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -505,11 +562,11 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
         # output timestamp and frame
         #timestamp = 1000.0 * float(FRAME_NUM)/FPS
         timestamp = FRAME_NUM
-
+        
         # Apply transformations (one of them being grayscale)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        rect, detectType  = detectFaces(gray, FACE_DOWNSAMPLE_RATIO)
+        
+        rect, detectType  = detect_faces(frame, FACE_DOWNSAMPLE_RATIO)
 
         if(rect is not None):
             # Resize obtained rectangle for full resolution image
@@ -545,9 +602,15 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
             cv2.circle(frame, totuple(shape[28]), 1, (255,0,0),2)
             
             # adjust shapes so that middle (28) is centered
-            centered_shape = shape - shape[28] + [frame.shape[1]/2,frame.shape[0]/2]
-            centered_shape = centered_shape.astype(np.uint64)
-            cv2.polylines(frame, [centered_shape], 1, (0, 0, 255), 2)
+            # centered_shape = shape - shape[28] + [frame.shape[1]/2,frame.shape[0]/2]
+            # centered_shape = centered_shape.astype(np.uint64)
+            
+            #pdb.set_trace()
+            
+            # adjust landmarks
+            centered_shape = face_align(shape,rect)
+            for(x,y) in centered_shape:
+                cv2.circle(frame,(x,y),5,(0,0,255),5)
         
         # output different csv things if face was detected
         if(rect is not None):
@@ -584,6 +647,103 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
     cv2.destroyAllWindows()
     return np.asarray(out)
     
+# Starts a live demo of facial classification and landmark detection	
+def live_demo():
+    print("Live Demo")
+
+    # How much to downsample face for detection
+    FACE_DOWNSAMPLE_RATIO = 1
+
+    # grab the indexes of the facial landmarks for the left and
+    # right eye, respectively
+    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+
+    # start the video stream thread
+    vs = VideoStream(src=0).start()
+
+    time.sleep(5.0)
+
+    # "dropped" frames
+    NOT_GRABBED = 0
+
+    # loop over frames from the video stream
+    # stop when we haven't grabbed END_VIDEO_LIMIT frames
+    while True:
+
+        # Try to grab frame
+        frame = vs.read()
+
+        if(frame is None):
+            print("not grabbed = " + str(NOT_GRABBED))
+            NOT_GRABBED += 1
+            time.sleep(1.0)
+            continue
+
+        # Apply transformations (one of them being grayscale)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        rect, detectType  = detect_faces(gray, FACE_DOWNSAMPLE_RATIO)
+
+        if(rect is not None):
+            # Resize obtained rectangle for full resolution image
+            rect_resize = dlib.rectangle(
+                left=rect.left() * FACE_DOWNSAMPLE_RATIO,
+                top=rect.top() * FACE_DOWNSAMPLE_RATIO,
+                right=rect.right() * FACE_DOWNSAMPLE_RATIO,
+                bottom=rect.bottom() * FACE_DOWNSAMPLE_RATIO
+            )
+
+            shape = predictor(gray,rect_resize)
+            shape = face_utils.shape_to_np(shape)
+
+            # extract the left and right eye coordinates, then use the
+            # coordinates to compute the eye aspect ratio for both eyes
+            leftEye = shape[lStart:lEnd]
+            rightEye = shape[rStart:rEnd]
+
+            leftEAR = eye_aspect_ratio(leftEye)
+            rightEAR = eye_aspect_ratio(rightEye)
+
+            # average the eye aspect ratio together for both eyes
+            ear = (leftEAR + rightEAR) / 2.0
+
+            # compute the convex hull for the left and right eye, then
+            # visualize each of the eyes
+            leftEyeHull = cv2.convexHull(leftEye)
+            rightEyeHull = cv2.convexHull(rightEye)
+            
+            for x,y in shape:
+                cv2.circle(frame,(x,y),1,(255,0,0),2)
+            
+            cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
+            cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
+            cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
+            cv2.circle(frame, totuple(shape[28]), 1, (255,0,0),2)  
+
+        display_frame = cv2.resize(frame,(1280,720))
+        # draw the total number of blinks on the frame along with
+        # the computed eye aspect ratio for the frame
+        # Reset counter if we did not find any faces
+        if(rect is None):
+            cv2.putText(display_frame, "EAR: N\\A", (300, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            cv2.putText(display_frame, "NO FACE DETECTED", (300, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        else:
+            cv2.putText(display_frame, "EAR: {:.2f}".format(ear), (300, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+        # show the frame
+        cv2.imshow("Frame", display_frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.destroyAllWindows()
+            return
+
+    # do a bit of cleanup
+    cv2.destroyAllWindows()
+
 # ---------------------------------------------------------------------------
 
 WRITE_TO_CSV = True
@@ -600,6 +760,9 @@ detector2 = cv2.CascadeClassifier(detector2Path)
 # openCV's eye detector
 detector4_eyes = cv2.CascadeClassifier(detector4Path)
 
+# Aleksandr Rybnikov's res10 dnn face detector
+detector5 = cv2.dnn.readNetFromCaffe(detector5Path1, detector5Path2)
+
 # dlibs facial landmark detector (68 points)
 predictor = dlib.shape_predictor(shapePredPath)
 
@@ -610,13 +773,24 @@ for filename in os.listdir(vidPath):
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
         
+<<<<<<< HEAD
 # # gen landmarks
+=======
+# Live demo
+# live_demo()
+
+# gen landmarks
+>>>>>>> 1b512324dc3e83ab117b026eaabffe295256017e
 file = files[0]
 out = gen_landmarks(file)
 out = np.asarray(out)
 print(out.shape)
 vidName, ext = os.path.splitext(os.path.basename(file))
+<<<<<<< HEAD
 np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+=======
+# np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+>>>>>>> 1b512324dc3e83ab117b026eaabffe295256017e
 
 # gen ears
 # file = files[0]
