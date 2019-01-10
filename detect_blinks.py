@@ -61,6 +61,7 @@ def detect_faces(frame,FACE_DOWNSAMPLE_RATIO):
         rects = sorted(rects,reverse=True,key=lambda x: x.area())
         rect = rects[0]
 
+
     return rect, detectType
 
 # flip frame
@@ -596,7 +597,15 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
             leftEyeHull = cv2.convexHull(leftEye)
             rightEyeHull = cv2.convexHull(rightEye)
             
-            cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
+            # pdb.set_trace()
+            (left,top,right,bottom) = [rect_resize.left(), rect_resize.top(), rect_resize.right(), rect_resize.bottom()]
+            cv2.rectangle(frame,(left,top),(right,bottom),cv2.COLOR_BGR2HSV,10)
+            cv2.circle(frame, (left,top), 1, (204,0,204),10)
+            cv2.circle(frame, (left,bottom), 1, (255,0,0),10)
+            cv2.circle(frame, (right,top), 1, (0,255,0),10)
+            cv2.circle(frame, (right,bottom), 1, (0,0,255),10)
+
+                
             cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
             cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
             cv2.circle(frame, totuple(shape[28]), 1, (255,0,0),2)
@@ -608,7 +617,7 @@ def gen_landmarks(filename, SHOW_FRAME = True, FLIP = False):
             #pdb.set_trace()
             
             # adjust landmarks
-            centered_shape = face_align(shape,rect)
+            centered_shape = face_align(shape,rect_resize)
             for(x,y) in centered_shape:
                 cv2.circle(frame,(x,y),5,(0,0,255),5)
         
@@ -782,7 +791,7 @@ out = gen_landmarks(file)
 out = np.asarray(out)
 print(out.shape)
 vidName, ext = os.path.splitext(os.path.basename(file))
-# np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 
 # gen ears
 # file = files[0]

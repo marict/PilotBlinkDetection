@@ -67,9 +67,9 @@ from sklearn.tree import DecisionTreeClassifier
 # from keras import backend as K
 
 # GLOBALS
-#basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
-#basePath = os.path.dirname(os.path.realpath(__file__)) + "\\"
-basePath = "D:\\blink-detection\\"
+# basePath = "C:\\Users\\Paul\\Desktop\\Research\\PilotBlinkDetection\\"
+# basePath = "D:\\blink-detection\\"
+basePath = "D:\\Research\\PilotBlinkDetection\\"
 vidPath = basePath + "vids\\"
 csvPath = basePath + "logs\\"
 picPath = basePath + "pics\\"
@@ -112,7 +112,8 @@ def dlib_rect_to_openCv(r):
 # Dealing with inclusive exclusive boundary
 def openCv_rect_to_dlib(r):
     (x,y,w,h) = r
-    return dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
+    #return dlib.rectangle(left=(x+w).item(), bottom=(y+h).item(), right=x.item(), top=y.item())
+    return dlib.rectangle(right=(x+w).item(), bottom=(y+h).item(), left=x.item(), top=y.item())
    
 # Identifies the apex of blinks as middle of eye-closed predictions
 def get_apexes(y_predict):
