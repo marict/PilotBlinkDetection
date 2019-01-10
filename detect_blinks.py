@@ -66,7 +66,6 @@ def detect_faces(frame,FACE_DOWNSAMPLE_RATIO):
 # flip frame
 def horizontal_flip(src):
     return cv2.flip(src,-1)
-<<<<<<< HEAD
 	
 # face alignment
 # centers face, scales it to common size, rotates the face so that the
@@ -811,7 +810,6 @@ np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 # vidName, ext = os.path.splitext(os.path.basename(file))
 # np.savetxt(csvPath + vidName + "_openclosed_labels.csv", out, delimiter=",")
 	
-=======
 	
 # face alignment
 # centers face, scales it to common size, rotates the face so that the
