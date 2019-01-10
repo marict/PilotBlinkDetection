@@ -228,6 +228,7 @@ def label_video(video,starting_frame = 0,FLIP = False):
             # It is better to wait for a while for the next frame to be ready
             continue
 
+
         if current_frame == num_frames or current_frame == num_frames - 2:
             # If the number of captured frames is equal to the total number of frames,
             # we stop
@@ -771,7 +772,6 @@ for filename in os.listdir(vidPath):
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
         
-# # gen landmarks
 
 # Live demo
 # live_demo()
@@ -783,8 +783,7 @@ out = np.asarray(out)
 print(out.shape)
 vidName, ext = os.path.splitext(os.path.basename(file))
 np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
-=======
-# np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+
 
 # gen ears
 # file = files[0]
@@ -811,4 +810,6 @@ np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 # vidName, ext = os.path.splitext(os.path.basename(file))
 # np.savetxt(csvPath + vidName + "_openclosed_labels.csv", out, delimiter=",")
 	
+	
+
 print("Done!")
