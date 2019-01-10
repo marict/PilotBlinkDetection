@@ -339,7 +339,6 @@ def gen_images(filename, SHOW_FRAME = True, FLIP = False):
             cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
             cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
 
-
         if(SHOW_FRAME):
             display_frame = cv2.resize(frame,(1280,720))
             # draw the total number of blinks on the frame along with
@@ -467,7 +466,6 @@ def gen_ears(filename, SHOW_FRAME = True, FLIP = False):
             cv2.rectangle(frame,(rect_resize.left(),rect_resize.top()),(rect_resize.right(),rect_resize.bottom()),cv2.COLOR_BGR2HSV,10)
             cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 2)
             cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 2)
-
 
         if(SHOW_FRAME):
             display_frame = cv2.resize(frame,(1280,720))
@@ -773,24 +771,20 @@ for filename in os.listdir(vidPath):
     if(filename.endswith(".MP4") or filename.endswith(".mp4")):
         files.append(filename)
         
-<<<<<<< HEAD
 # # gen landmarks
-=======
+
 # Live demo
 # live_demo()
 
 # gen landmarks
->>>>>>> 1b512324dc3e83ab117b026eaabffe295256017e
 file = files[0]
 out = gen_landmarks(file)
 out = np.asarray(out)
 print(out.shape)
 vidName, ext = os.path.splitext(os.path.basename(file))
-<<<<<<< HEAD
 np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 =======
 # np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
->>>>>>> 1b512324dc3e83ab117b026eaabffe295256017e
 
 # gen ears
 # file = files[0]
@@ -810,7 +804,6 @@ np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 			
 	# print("-----")
 
-
 # # Label video
 # file = files[0]
 # out = label_video(file)
@@ -818,5 +811,4 @@ np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
 # vidName, ext = os.path.splitext(os.path.basename(file))
 # np.savetxt(csvPath + vidName + "_openclosed_labels.csv", out, delimiter=",")
 	
-
 print("Done!")
