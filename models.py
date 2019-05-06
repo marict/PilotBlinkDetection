@@ -48,7 +48,7 @@ def model1(X):
 
 # Training data
 # print("loading in landmarks")
-txt1 = csvPath + "paulsim2_landmarks.csv"
+txt1 = csvPath + "paulsim2_landmarks_old.csv"
 features = pd.read_csv(txt1,sep=',',header=None).values
 
 # print("loading in labels")

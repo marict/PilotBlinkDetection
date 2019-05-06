@@ -1,14 +1,14 @@
 from data_funcs import *
 
 # ===================================  Training data
-txt1 = csvPath + "paulsim2_landmarks.csv"
+txt1 = csvPath + "paulsim2_landmarks_old.csv"
 features = pd.read_csv(txt1,sep=',',header=None).values
 
 txt2 = csvPath + "paulsim2_openclosed_labels.csv"
 labels = pd.read_csv(txt2,sep=',',header=None).values
 raw = np.hstack((features,labels))
 
-txt1 = csvPath + "paulsim1_landmarks.csv"
+txt1 = csvPath + "paulsim1_landmarks_old.csv"
 features = pd.read_csv(txt1,sep=',',header=None).values
 
 txt2 = csvPath + "paulsim1_openclosed_labels.csv"
@@ -18,11 +18,11 @@ raw = np.vstack((raw,raw2))
 
 X_train,y_train = raw[:,range(raw.shape[1]-1)].astype(int), raw[:,raw.shape[1]-1].astype(int)
 X_train = augment_landmarks_window(X_train)
-# X_train, y_train = remove_no_faces(X_train,y_train)
+X_train, y_train = remove_no_faces(X_train,y_train)
 
 # Testing data
 # print("loading in landmarks")
-txt1 = csvPath + "paulsim4_landmarks.csv"
+txt1 = csvPath + "paulsim4_landmarks_old.csv"
 features = pd.read_csv(txt1,sep=',',header=None).values
 
 # print("loading in labels")
@@ -33,8 +33,6 @@ raw = np.hstack((features,labels))
 X_test,y_test = raw[:,range(raw.shape[1]-1)].astype(int), raw[:,raw.shape[1]-1].astype(int)
 X_test = augment_landmarks_window(X_test)
 X_test, y_test = remove_no_faces(X_test,y_test)
-
-pdb.set_trace()
 
 #forest = RandomForestClassifier(n_estimators=5,n_jobs=-1)
 #model = AdaBoostClassifier(forest,n_estimators=forest.n_estimators)

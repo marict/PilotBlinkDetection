@@ -2,9 +2,7 @@
 from scipy.spatial import distance as dist
 from imutils import face_utils
 from operator import itemgetter
-from numpy import nan
 
-import numpy as np
 import argparse
 import imutils
 from imutils.video import VideoStream
@@ -13,16 +11,15 @@ import dlib
 import cv2
 import sys,os
 import importlib
-import pdb
 
 import numpy as np
+from numpy import *
 import scipy
 import os
 import cv2
 import dlib
 
 # try using an svm for the series analysis
-import numpy as np
 import math
 import scipy.stats
 import pprint
@@ -34,7 +31,6 @@ import pdb
 import matplotlib.pyplot as plt
 
 from scipy.stats import uniform, randint
-from numpy import *
 
 # sklearn
 from sklearn.preprocessing import normalize
@@ -158,7 +154,6 @@ def score(model,X,y):
 # from two disparate parts of the data set
 # Note that this has not had a very noticable effect
 def remove_no_faces(X,Y,WINDOW = 2):
-    pdb.set_trace()
     X_out = []
     y_out = []
     n = int(X.shape[1]/(WINDOW * 4))
@@ -169,7 +164,6 @@ def remove_no_faces(X,Y,WINDOW = 2):
             X_out.append(x)
             y_out.append(y)
             
-    pdb.set_trace()
     return np.asarray(X_out), np.asarray(y_out)
   
 # augments landmark data with a rolling window

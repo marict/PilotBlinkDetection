@@ -786,12 +786,19 @@ for filename in os.listdir(vidPath):
 # live_demo()
 
 # gen landmarks
-file = files[0]
-out = gen_landmarks(file)
-out = np.asarray(out)
-print(out.shape)
-vidName, ext = os.path.splitext(os.path.basename(file))
-np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+# file = files[0]
+# out = gen_landmarks(file)
+# out = np.asarray(out)
+# print(out.shape)
+# vidName, ext = os.path.splitext(os.path.basename(file))
+# np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")
+
+for file in files:
+    vidName, ext = os.path.splitext(os.path.basename(file))
+    out = gen_landmarks(file,SHOW_FRAME = True)
+    print("Writing " + str(vidName) + "_landmarks.csv")
+    np.savetxt(csvPath + vidName + "_landmarks.csv", out, delimiter=",")		
+    print("-----")
 
 # gen ears
 # file = files[0]
